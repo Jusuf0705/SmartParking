@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:fitsSystemWindows="true"
+    tools:context=".ui.admin.AdminPanel">
+
+    <!-- HEADER -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="32dp"
+        android:paddingBottom="12dp"
+        android:paddingStart="24dp"
+        android:paddingEnd="16dp">
+
+        <!-- Naslov -->
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-black"
+            android:gravity="center"
+            android:letterSpacing="0.02"
+            android:text="Admin panel"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="@+id/btnSignOut"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Odjava — desni ćošak, 34×34dp -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSignOut"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
+            android:text=""
+            android:contentDescription="Odjavi se"
+            app:icon="@android:drawable/ic_lock_power_off"
+            app:iconSize="18dp"
+            app:iconTint="?attr/colorError"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:cornerRadius="10dp"
+            app:strokeColor="?attr/colorError"
+            app:strokeWidth="1dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- DIVIDER -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:background="?attr/colorOutlineVariant" />
+
+    <!-- SADRŽAJ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
+
+        <!-- Kartica: Akcije -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
+            app:cardUseCompatPadding="true"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <!-- Korisnici -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnUsers"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="Upravljanje korisnicima"
+                    android:textSize="15sp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:gravity="start|center_vertical"
+                    android:paddingStart="16dp"
+                    app:cornerRadius="14dp"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp"
+                    app:icon="@android:drawable/ic_menu_manage"
+                    app:iconTint="?attr/colorPrimary"
+                    app:iconSize="20dp"
+                    app:iconPadding="12dp" />
+
+                <!-- Parking -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnParking"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="Upravljanje parkingom"
+                    android:textSize="15sp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:gravity="start|center_vertical"
+                    android:paddingStart="16dp"
+                    app:cornerRadius="14dp"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp"
+                    app:icon="@android:drawable/ic_menu_directions"
+                    app:iconTint="?attr/colorPrimary"
+                    app:iconSize="20dp"
+                    app:iconPadding="12dp" />
+
+                <!-- Kazne -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFines"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Pregled kazni"
+                    android:textSize="15sp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:gravity="start|center_vertical"
+                    android:paddingStart="16dp"
+                    app:cornerRadius="14dp"
+                    app:strokeColor="?attr/colorOutline"
+                    app:strokeWidth="1dp"
+                    app:icon="@android:drawable/ic_menu_agenda"
+                    app:iconTint="?attr/colorPrimary"
+                    app:iconSize="20dp"
+                    app:iconPadding="12dp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+
+</LinearLayout>
