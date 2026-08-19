@@ -2,156 +2,152 @@
 <androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/cardVehicle"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
-    app:cardCornerRadius="20dp"
-    app:cardElevation="0dp"
-    app:cardUseCompatPadding="true"
-    app:cardBackgroundColor="?attr/colorSurfaceVariant">
+    android:layout_marginBottom="14dp"
+    app:cardCornerRadius="22dp"
+    app:cardElevation="3dp"
+    app:cardBackgroundColor="@color/white">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="16dp">
 
-        <!-- LABEL (kao "Podaci", "Promjena lozinke") -->
-        <TextView
-            android:id="@+id/tvSection"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Vozilo"
-            android:textSize="11sp"
-            android:textAllCaps="true"
-            android:letterSpacing="0.06"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:layout_marginBottom="10dp" />
-
-        <!-- Gornji red: ikona + naziv + registracija -->
+        <!-- TOP: ikona + tekst + osnovno bedž -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <!-- Krug sa ikonom (isti kao kod tebe) -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorPrimaryContainer">
+            <!-- Auto ikonica u obojenom kvadratu (boja se postavlja iz koda) -->
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="12dp">
+
+                <View
+                    android:id="@+id/vIconBg"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_vehicle_icon_tinted" />
 
                 <ImageView
-                    android:id="@+id/ivVehicle"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:id="@+id/ivVehicleColor"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:layout_gravity="center"
-                    android:src="@android:drawable/ic_menu_directions"
-                    android:contentDescription="Vozilo"
-                    app:tint="?attr/colorOnPrimaryContainer" />
-            </androidx.cardview.widget.CardView>
+                    android:src="@drawable/ic_car"
+                    android:contentDescription="Vozilo" />
+            </FrameLayout>
 
+            <!-- Naslov + marka + tablica -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginStart="12dp">
+                android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/tvTitle"
-                    android:layout_width="match_parent"
+                    android:id="@+id/tvVehicleNickname"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Moj Golf • VW • Auto"
+                    android:text=""
+                    android:textColor="@color/foreground"
                     android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:fontFamily="sans-serif-medium"
-                    android:textColor="?attr/colorOnSurface"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tvSub"
-                    android:layout_width="match_parent"
+                    android:id="@+id/tvVehicleBrand"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
-                    android:text="A12-K-345"
-                    android:textSize="13sp"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:text=""
+                    android:textColor="@color/muted_foreground"
+                    android:textSize="12sp"
+                    android:layout_marginTop="1dp" />
 
+                <!-- Tablica kao pill -->
+                <TextView
+                    android:id="@+id/tvVehiclePlate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@color/blue_600"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:background="@drawable/bg_zone_badge_pill"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:layout_marginTop="6dp" />
             </LinearLayout>
 
+            <!-- OSNOVNO bedž -->
+            <TextView
+                android:id="@+id/tvDefaultBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="OSNOVNO"
+                android:textColor="@color/status_available_text"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.06"
+                android:background="@drawable/bg_default_badge"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Divider (isti kao u profilu: outlineVariant) -->
+        <!-- Divider -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="10dp"
-            android:background="?attr/colorOutlineVariant" />
+            android:background="@color/brand_blue_border_faint"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="12dp" />
 
-        <!-- Dugmad -->
+        <!-- BOTTOM: dugmad -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEdit"
-                style="?attr/materialButtonOutlinedStyle"
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnEditVehicle"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="44dp"
                 android:layout_weight="1"
                 android:text="Izmijeni"
                 android:textAllCaps="false"
+                android:textColor="@color/blue_600"
                 android:textSize="13sp"
-                android:textColor="?attr/colorOnSurface"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                app:cornerRadius="12dp"
-                app:strokeColor="?attr/colorOutline"
-                app:strokeWidth="1dp"
-                app:icon="@android:drawable/ic_menu_edit"
-                app:iconSize="15dp"
-                app:iconTint="?attr/colorOnSurface"
-                app:iconPadding="6dp" />
+                android:textStyle="bold"
+                android:background="@drawable/bg_btn_edit_vehicle"
+                android:backgroundTint="@null"
+                android:stateListAnimator="@null"
+                android:layout_marginEnd="8dp" />
 
-            <Space
-                android:layout_width="8dp"
-                android:layout_height="wrap_content" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDelete"
-                style="?attr/materialButtonOutlinedStyle"
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnDeleteVehicle"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="44dp"
                 android:layout_weight="1"
                 android:text="Obriši"
                 android:textAllCaps="false"
+                android:textColor="@color/destructive"
                 android:textSize="13sp"
-                android:textColor="?attr/colorError"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                app:cornerRadius="12dp"
-                app:strokeColor="?attr/colorError"
-                app:strokeWidth="1dp"
-                app:icon="@android:drawable/ic_menu_delete"
-                app:iconSize="15dp"
-                app:iconTint="?attr/colorError"
-                app:iconPadding="6dp" />
-
+                android:textStyle="bold"
+                android:background="@drawable/bg_btn_delete_vehicle"
+                android:backgroundTint="@null"
+                android:stateListAnimator="@null"
+                android:layout_marginStart="8dp" />
         </LinearLayout>
-
     </LinearLayout>
 
 </androidx.cardview.widget.CardView>

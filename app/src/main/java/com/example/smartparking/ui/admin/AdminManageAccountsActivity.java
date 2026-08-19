@@ -1,27 +1,29 @@
 package com.example.smartparking.ui.admin;
 
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.smartparking.R;
 import com.example.smartparking.data.FirebaseUtils;
 import com.example.smartparking.data.SecondaryAuth;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -31,49 +33,67 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 public class AdminManageAccountsActivity extends AppCompatActivity {
 
-    // XML: spType je AutoCompleteTextView (dropdown), nije Spinner
-    private AutoCompleteTextView spType;
+    private enum FilterMode { ALL, USER, KONTROLOR }
 
-    private Button btnAdd, btnRefresh;
+    private FilterMode currentFilter = FilterMode.ALL;
+    private String searchQuery = "";
+
+    private MaterialButton btnBack, btnAdd, btnSearch;
+    private TextView tvCountUsers, tvCountKontrolori, tvListHeader;
+
+    private AppCompatButton tabAll, tabUser, tabKontrolor;
+
+    private View searchCard;
+    private TextInputEditText etSearch;
+
     private RecyclerView rv;
     private AccountsAdapter adapter;
 
-    private TextView tvEmpty;
-
     private DatabaseReference usersRef, rolesRef;
 
-    private String currentType = "user"; // default
-
-    private final String[] ROLE_OPTIONS = new String[]{"user", "kontrola"};
+    private final List<AccountRow> allAccounts = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_admin_manage_accounts);
 
-        // Header back dugme (ako postoji u layoutu)
-        MaterialButton btnBack = findViewById(R.id.btnBack);
+        btnBack           = findViewById(R.id.btnBack);
+        btnAdd            = findViewById(R.id.btnAdd);
+        btnSearch         = findViewById(R.id.btnSearch);
+        tvCountUsers      = findViewById(R.id.tvCountUsers);
+        tvCountKontrolori = findViewById(R.id.tvCountKontrolori);
+        tvListHeader      = findViewById(R.id.tvListHeader);
+        tabAll            = findViewById(R.id.tabAll);
+        tabUser           = findViewById(R.id.tabUser);
+        tabKontrolor      = findViewById(R.id.tabKontrolor);
+        searchCard        = findViewById(R.id.searchCard);
+        etSearch          = findViewById(R.id.etSearch);
+        rv                = findViewById(R.id.recycler);
+
         if (btnBack != null) btnBack.setOnClickListener(v -> finish());
+        if (btnAdd  != null) btnAdd.setOnClickListener(v -> showPickRoleFirst());
 
-        spType = findViewById(R.id.spType);
-        btnAdd = findViewById(R.id.btnAdd);
-        btnRefresh = findViewById(R.id.btnRefresh);
-        rv = findViewById(R.id.recycler);
+        btnSearch.setOnClickListener(v -> toggleSearchCard());
 
-        // Empty text (overlay) - kao u tvom kodu
-        tvEmpty = new TextView(this);
-        tvEmpty.setText("Nema zapisa za odabrani tip.");
-        tvEmpty.setPadding(24, 24, 24, 24);
-        tvEmpty.setVisibility(View.GONE);
-        ((ViewGroup) findViewById(android.R.id.content)).addView(tvEmpty);
+        tabAll.setOnClickListener(v       -> selectTab(FilterMode.ALL));
+        tabUser.setOnClickListener(v      -> selectTab(FilterMode.USER));
+        tabKontrolor.setOnClickListener(v -> selectTab(FilterMode.KONTROLOR));
+
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
+                searchQuery = s == null ? "" : s.toString().trim().toLowerCase(Locale.ROOT);
+                applyFilter();
+            }
+        });
 
         rv.setLayoutManager(new LinearLayoutManager(this));
         adapter = new AccountsAdapter();
@@ -82,177 +102,344 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         usersRef = FirebaseUtils.usersRef();
         rolesRef = FirebaseUtils.rolesRef();
 
-        // ===== Dropdown setup (AutoCompleteTextView) =====
-        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(
-                this,
-                android.R.layout.simple_list_item_1,
-                ROLE_OPTIONS
-        );
-        spType.setAdapter(typeAdapter);
-
-        // default vrijednost
-        spType.setText(ROLE_OPTIONS[0], false);
-        currentType = ROLE_OPTIONS[0];
-
-        // kad korisnik izabere tip
-        spType.setOnItemClickListener((parent, view, position, id) -> {
-            String val = (String) parent.getItemAtPosition(position);
-            currentType = normalizeRole(val);
-            loadListForRole(currentType);
-        });
-
-        // inicijalni load
-        loadListForRole(currentType);
-
-        btnAdd.setOnClickListener(v -> showAddDialog());
-        btnRefresh.setOnClickListener(v -> loadListForRole(currentType));
+        selectTab(FilterMode.ALL);
+        loadAllAccounts();
     }
 
-    private String normalizeRole(String role) {
-        if (role == null) return "user";
-        String r = role.trim().toLowerCase(Locale.ROOT);
-        if (!r.equals("user") && !r.equals("kontrola") && !r.equals("admin")) return "user";
-        return r;
+    private void toggleSearchCard() {
+        if (searchCard == null) return;
+        boolean visible = searchCard.getVisibility() == View.VISIBLE;
+        searchCard.setVisibility(visible ? View.GONE : View.VISIBLE);
+        if (!visible && etSearch != null) {
+            etSearch.requestFocus();
+        } else {
+            if (etSearch != null) etSearch.setText("");
+            searchQuery = "";
+            applyFilter();
+        }
     }
 
-    /** Učitaj sve naloge za izabrani tip (user/kontrola) */
-    private void loadListForRole(@NonNull String roleValueRaw) {
-        final String targetRole = normalizeRole(roleValueRaw);
+    // ═══════════════════════════════════════════════════════
+    // TABS
+    // ═══════════════════════════════════════════════════════
 
-        adapter.submit(Collections.emptyList());
-        if (tvEmpty != null) tvEmpty.setVisibility(View.GONE);
+    private void selectTab(FilterMode mode) {
+        currentFilter = mode;
 
+        AppCompatButton[] tabs = {tabAll, tabUser, tabKontrolor};
+        FilterMode[] modes = {FilterMode.ALL, FilterMode.USER, FilterMode.KONTROLOR};
+
+        for (int i = 0; i < tabs.length; i++) {
+            boolean active = (modes[i] == mode);
+            tabs[i].setBackgroundResource(active
+                    ? R.drawable.bg_tab_active
+                    : android.R.color.transparent);
+            tabs[i].setTextColor(ContextCompat.getColor(this,
+                    active ? R.color.white : R.color.muted_foreground));
+        }
+
+        applyFilter();
+    }
+
+    private void applyFilter() {
+        List<AccountRow> filtered = new ArrayList<>();
+        for (AccountRow r : allAccounts) {
+            boolean roleMatch;
+            switch (currentFilter) {
+                case USER:      roleMatch = "user".equals(r.role); break;
+                case KONTROLOR: roleMatch = "kontrolor".equals(r.role); break;
+                default:        roleMatch = true;
+            }
+            if (!roleMatch) continue;
+
+            if (!searchQuery.isEmpty()) {
+                String haystack = ((r.firstName == null ? "" : r.firstName) + " "
+                        + (r.lastName == null ? "" : r.lastName) + " "
+                        + (r.email == null ? "" : r.email))
+                        .toLowerCase(Locale.ROOT);
+                if (!haystack.contains(searchQuery)) continue;
+            }
+
+            filtered.add(r);
+        }
+        adapter.submit(filtered);
+
+        if (tvListHeader != null) {
+            int n = filtered.size();
+            String suffix = (n == 1) ? " NALOG" : " NALOGA";
+            tvListHeader.setText(n + suffix);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // LOAD (admini se preskaču)
+    // ═══════════════════════════════════════════════════════
+
+    private void loadAllAccounts() {
         rolesRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot rolesSnap) {
 
-                final Set<String> matchedUids = new HashSet<>();
+                final Map<String, String> uidToRole = new HashMap<>();
                 for (DataSnapshot r : rolesSnap.getChildren()) {
-                    String uid = r.getKey();
+                    String uid  = r.getKey();
                     String role = r.getValue(String.class);
-                    if (uid == null || role == null) continue;
-
-                    if (normalizeRole(role).equals(targetRole)) {
-                        matchedUids.add(uid);
-                    }
-                }
-
-                if (matchedUids.isEmpty()) {
-                    adapter.submit(Collections.emptyList());
-                    showEmpty("Nema zapisa za odabrani tip („" + targetRole + "”).");
-                    return;
+                    if (uid == null) continue;
+                    uidToRole.put(uid, normalizeRole(role));
                 }
 
                 usersRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override public void onDataChange(@NonNull DataSnapshot usersSnap) {
-                        List<AccountRow> list = new ArrayList<>();
+                        allAccounts.clear();
+
+                        int countUsers = 0, countKontrolori = 0;
 
                         for (DataSnapshot u : usersSnap.getChildren()) {
                             String uid = u.getKey();
-                            if (uid == null || !matchedUids.contains(uid)) continue;
+                            if (uid == null) continue;
+
+                            String role = uidToRole.getOrDefault(uid, "user");
+                            if ("admin".equals(role)) continue;
 
                             AccountRow row = new AccountRow();
-                            row.uid = uid;
-                            row.email = u.child("email").getValue(String.class);
+                            row.uid       = uid;
+                            row.email     = u.child("email").getValue(String.class);
                             row.firstName = u.child("firstName").getValue(String.class);
-                            row.lastName = u.child("lastName").getValue(String.class);
-                            list.add(row);
+                            row.lastName  = u.child("lastName").getValue(String.class);
+                            row.role      = role;
+
+                            allAccounts.add(row);
+
+                            if ("user".equals(role)) countUsers++;
+                            else if ("kontrolor".equals(role)) countKontrolori++;
                         }
 
-                        adapter.submit(list);
+                        Collections.sort(allAccounts, (a, bb) -> {
+                            String an = (a.firstName == null ? "" : a.firstName).toLowerCase(Locale.ROOT);
+                            String bn = (bb.firstName == null ? "" : bb.firstName).toLowerCase(Locale.ROOT);
+                            if (an.isEmpty() && !bn.isEmpty()) return 1;
+                            if (!an.isEmpty() && bn.isEmpty()) return -1;
+                            return an.compareTo(bn);
+                        });
 
-                        if (list.isEmpty()) {
-                            showEmpty("Nema zapisa za odabrani tip („" + targetRole + "”).");
-                        } else {
-                            hideEmpty();
-                        }
+                        if (tvCountUsers      != null) tvCountUsers.setText(String.valueOf(countUsers));
+                        if (tvCountKontrolori != null) tvCountKontrolori.setText(String.valueOf(countKontrolori));
 
-                        Toast.makeText(AdminManageAccountsActivity.this,
-                                "Pronađeno: " + list.size() + " (" + targetRole + ")",
-                                Toast.LENGTH_SHORT).show();
+                        applyFilter();
                     }
-
-                    @Override public void onCancelled(@NonNull DatabaseError e) {
-                        toast(e.getMessage());
-                        showEmpty("Greška: " + e.getMessage());
-                    }
+                    @Override public void onCancelled(@NonNull DatabaseError e) { toast(e.getMessage()); }
                 });
             }
-
-            @Override public void onCancelled(@NonNull DatabaseError e) {
-                toast(e.getMessage());
-                showEmpty("Greška: " + e.getMessage());
-            }
+            @Override public void onCancelled(@NonNull DatabaseError e) { toast(e.getMessage()); }
         });
     }
 
-    private void showEmpty(String text) {
-        if (tvEmpty == null) return;
-        tvEmpty.setText(text);
-        tvEmpty.setVisibility(View.VISIBLE);
+    /** Baza → UI: "kontrola" → "kontrolor" za prikaz. */
+    private String normalizeRole(String role) {
+        if (role == null) return "user";
+        String r = role.trim().toLowerCase(Locale.ROOT);
+        if (r.equals("kontrola")) return "kontrolor";
+        if (!r.equals("user") && !r.equals("kontrolor") && !r.equals("admin")) return "user";
+        return r;
     }
 
-    private void hideEmpty() {
-        if (tvEmpty == null) return;
-        tvEmpty.setVisibility(View.GONE);
+    /** UI → Baza: "kontrolor"/"kontrola" → "kontrola" (što pravila zahtijevaju). */
+    private String roleForDb(String uiRole) {
+        if (uiRole == null) return "user";
+        String r = uiRole.trim().toLowerCase(Locale.ROOT);
+        if (r.equals("kontrolor") || r.equals("kontrola")) return "kontrola";
+        if (r.equals("admin")) return "admin";
+        return "user";
     }
 
-    // ===== Dodavanje, uređivanje, brisanje =====
+    // ═══════════════════════════════════════════════════════
+    // ACTIONS BOTTOM SHEET
+    // ═══════════════════════════════════════════════════════
 
-    private void showAddDialog() {
-        View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_edit_account, null);
+    private void showUserActionsDialog(AccountRow row) {
+        BottomSheetDialog dlg = new BottomSheetDialog(this);
+        View v = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_user_actions, null, false);
+        dlg.setContentView(v);
 
-        TextView tvTitle = view.findViewById(R.id.tvRoleTitle);
-        EditText etFN = view.findViewById(R.id.etFirstName);
-        EditText etLN = view.findViewById(R.id.etLastName);
-        EditText etEmail = view.findViewById(R.id.etEmail);
-        EditText etPass = view.findViewById(R.id.etPassword);
+        View     vAvatarBg     = v.findViewById(R.id.vDialogAvatarBg);
+        TextView tvAvatar      = v.findViewById(R.id.tvDialogAvatar);
+        TextView tvName        = v.findViewById(R.id.tvDialogName);
+        TextView tvEmail       = v.findViewById(R.id.tvDialogEmail);
+        TextView tvCurrentRole = v.findViewById(R.id.tvCurrentRole);
+
+        String fullName = ((row.firstName == null ? "" : row.firstName) + " "
+                + (row.lastName == null ? "" : row.lastName)).trim();
+        tvName.setText(TextUtils.isEmpty(fullName) ? "(Bez imena)" : fullName);
+        tvEmail.setText(row.email == null ? "" : row.email);
+        tvAvatar.setText(initialsFor(row.firstName, row.lastName, row.email));
+        tvCurrentRole.setText("Trenutno: " + row.role);
+
+        int avatarBgRes;
+        int avatarTextColor;
+        if ("kontrolor".equals(row.role)) {
+            avatarBgRes     = R.drawable.bg_avatar_amber;
+            avatarTextColor = ContextCompat.getColor(this, R.color.amber_700);
+        } else {
+            avatarBgRes     = R.drawable.bg_avatar_blue;
+            avatarTextColor = ContextCompat.getColor(this, R.color.blue_600);
+        }
+        vAvatarBg.setBackgroundResource(avatarBgRes);
+        tvAvatar.setTextColor(avatarTextColor);
+
+        View rowEdit   = v.findViewById(R.id.rowEditProfile);
+        View rowRole   = v.findViewById(R.id.rowChangeRole);
+        View rowDelete = v.findViewById(R.id.rowDelete);
+        AppCompatButton btnCancel = v.findViewById(R.id.btnCancel);
+
+        rowEdit.setOnClickListener(x -> {
+            dlg.dismiss();
+            showEditDialog(row);
+        });
+        rowRole.setOnClickListener(x -> {
+            dlg.dismiss();
+            showToggleRoleDialog(row);
+        });
+        rowDelete.setOnClickListener(x -> {
+            dlg.dismiss();
+            showDeleteConfirmDialog(row);
+        });
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // PROMIJENI ULOGU
+    // ═══════════════════════════════════════════════════════
+
+    private void showToggleRoleDialog(AccountRow row) {
+        BottomSheetDialog dlg = new BottomSheetDialog(this);
+        View v = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_pick_role, null, false);
+        dlg.setContentView(v);
+
+        TextView tvSubtitle = v.findViewById(R.id.tvPickRoleSubtitle);
+        if (tvSubtitle != null) {
+            String fullName = ((row.firstName == null ? "" : row.firstName) + " "
+                    + (row.lastName == null ? "" : row.lastName)).trim();
+            String display = TextUtils.isEmpty(fullName) ? (row.email == null ? "" : row.email) : fullName;
+            tvSubtitle.setText("Promijeni ulogu za: " + display + "\nTrenutno: " + row.role);
+        }
+
+        View pickUser      = v.findViewById(R.id.pickRoleUser);
+        View pickKontrolor = v.findViewById(R.id.pickRoleKontrolor);
+        AppCompatButton btnCancel = v.findViewById(R.id.btnPickRoleCancel);
+
+        pickUser.setOnClickListener(x -> {
+            dlg.dismiss();
+            changeRole(row, "user");
+        });
+        pickKontrolor.setOnClickListener(x -> {
+            dlg.dismiss();
+            changeRole(row, "kontrolor");
+        });
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
+    }
+
+    private void changeRole(AccountRow row, String newRole) {
+        if (newRole.equals(row.role)) {
+            toast("Uloga nije promijenjena.");
+            return;
+        }
+        // ✅ U bazu ide "kontrola" (ne "kontrolor") jer pravila to zahtijevaju
+        FirebaseUtils.role(row.uid).setValue(roleForDb(newRole))
+                .addOnSuccessListener(x -> {
+                    toast("Uloga promijenjena u: " + newRole);
+                    loadAllAccounts();
+                })
+                .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // ADD FLOW
+    // ═══════════════════════════════════════════════════════
+
+    private void showAddDialog(String role) {
+        BottomSheetDialog dlg = new BottomSheetDialog(this);
+        View view = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_add_edit_user, null, false);
+        dlg.setContentView(view);
+
+        TextView tvTitle = view.findViewById(R.id.tvDialogTitle);
+        if (tvTitle != null) {
+            tvTitle.setText("kontrolor".equals(role) ? "Dodaj kontrolora" : "Dodaj korisnika");
+        }
+
+        EditText etFN      = view.findViewById(R.id.etFirstName);
+        EditText etLN      = view.findViewById(R.id.etLastName);
+        EditText etEmail   = view.findViewById(R.id.etEmail);
+        EditText etPass    = view.findViewById(R.id.etPassword);
         EditText etConfirm = view.findViewById(R.id.etConfirmPassword);
 
-        tvTitle.setText(currentType.equals("user") ? "Novi USER" : "Novi KONTROLOR");
+        AppCompatButton btnSave   = view.findViewById(R.id.btnSave);
+        AppCompatButton btnCancel = view.findViewById(R.id.btnCancel);
 
-        if (etPass != null) {
-            etPass.setVisibility(View.VISIBLE);
-            etPass.setText("");
-            etPass.setHint("Lozinka");
-        }
+        btnSave.setText("Kreiraj nalog");
 
-        if (etConfirm != null) {
-            etConfirm.setVisibility(View.VISIBLE);
-            etConfirm.setText("");
-        }
+        btnSave.setOnClickListener(x -> {
+            String fn    = etFN      != null ? etFN.getText().toString().trim()    : "";
+            String ln    = etLN      != null ? etLN.getText().toString().trim()    : "";
+            String email = etEmail   != null ? etEmail.getText().toString().trim() : "";
+            String pass  = etPass    != null ? etPass.getText().toString()         : "";
+            String conf  = etConfirm != null ? etConfirm.getText().toString()      : "";
 
-        new AlertDialog.Builder(this)
-                .setTitle("Dodaj " + (currentType.equals("user") ? "usera" : "kontrolora"))
-                .setView(view)
-                // Napomena: PositiveButton automatski zatvara dialog,
-                // ali zadržavam tvoju logiku kao i ranije.
-                .setPositiveButton("Spasi", (d, w) -> {
-                    String fn = etFN != null ? etFN.getText().toString().trim() : "";
-                    String ln = etLN != null ? etLN.getText().toString().trim() : "";
-                    String email = etEmail != null ? etEmail.getText().toString().trim() : "";
-                    String pass = etPass != null ? etPass.getText().toString() : "";
-                    String conf = etConfirm != null ? etConfirm.getText().toString() : "";
+            if (TextUtils.isEmpty(fn) || TextUtils.isEmpty(ln)
+                    || TextUtils.isEmpty(email) || TextUtils.isEmpty(pass)) {
+                toast("Ime, prezime, email i lozinka su obavezni.");
+                return;
+            }
+            if (pass.length() < 6) {
+                toast("Lozinka mora imati najmanje 6 znakova.");
+                return;
+            }
+            if (!TextUtils.isEmpty(conf) && !pass.equals(conf)) {
+                toast("Lozinke se ne podudaraju.");
+                return;
+            }
 
-                    if (TextUtils.isEmpty(fn) || TextUtils.isEmpty(ln) || TextUtils.isEmpty(email) || TextUtils.isEmpty(pass)) {
-                        toast("Ime, prezime, email i lozinka su obavezni.");
-                        return;
-                    }
-                    if (pass.length() < 6) {
-                        toast("Lozinka mora imati najmanje 6 znakova.");
-                        return;
-                    }
-                    if (etConfirm != null && !TextUtils.isEmpty(conf) && !pass.equals(conf)) {
-                        toast("Lozinke se ne podudaraju.");
-                        return;
-                    }
+            dlg.dismiss();
+            addAccount(fn, ln, email, pass, role);   // rola je već izabrana
+        });
 
-                    addAccount(fn, ln, email, pass);
-                })
-                .setNegativeButton("Otkaži", null)
-                .show();
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
     }
 
-    private void addAccount(String fn, String ln, String email, String pass) {
+    private void showPickRoleFirst() {
+        BottomSheetDialog dlg = new BottomSheetDialog(this);
+        View v = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_pick_role, null, false);
+        dlg.setContentView(v);
+
+        TextView tvSubtitle = v.findViewById(R.id.tvPickRoleSubtitle);
+        if (tvSubtitle != null) tvSubtitle.setText("Odaberite tip naloga koji dodajete:");
+
+        View pickUser      = v.findViewById(R.id.pickRoleUser);
+        View pickKontrolor = v.findViewById(R.id.pickRoleKontrolor);
+        AppCompatButton btnCancel = v.findViewById(R.id.btnPickRoleCancel);
+
+        pickUser.setOnClickListener(x -> {
+            dlg.dismiss();
+            showAddDialog("user");
+        });
+        pickKontrolor.setOnClickListener(x -> {
+            dlg.dismiss();
+            showAddDialog("kontrolor");
+        });
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
+    }
+
+    private void addAccount(String fn, String ln, String email, String pass, String role) {
         FirebaseAuth sec = SecondaryAuth.get(this);
 
         sec.createUserWithEmailAndPassword(email, pass)
@@ -269,108 +456,157 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
                     user.put("lastName", ln);
 
                     FirebaseUtils.user(uid).setValue(user);
-                    FirebaseUtils.role(uid).setValue(currentType);
-                    if (currentType.equals("user")) {
+                    // DB stores "kontrola", UI shows "kontrolor"
+                    FirebaseUtils.role(uid).setValue(roleForDb(role));
+                    if (role.equals("user")) {
                         FirebaseUtils.balance(uid).setValue(0.0);
                     }
 
-                    toast("Kreirano: " + email + " (" + currentType + ")");
-                    loadListForRole(currentType);
+                    // Sign out secondary instance so it doesn't stay logged in as the new user
+                    try { sec.signOut(); } catch (Exception ignored) {}
+
+                    toast("Kreirano: " + email + " (" + role + ")");
+                    loadAllAccounts();
                 })
                 .addOnFailureListener(e -> toast("Greška pri kreiranju naloga: " + e.getMessage()));
     }
 
-    private void showEditDialog(AccountRow row) {
-        View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_edit_account, null);
+    // ═══════════════════════════════════════════════════════
+    // EDIT PROFILE
+    // ═══════════════════════════════════════════════════════
 
-        TextView tvRole = view.findViewById(R.id.tvRoleTitle);
-        EditText etFN = view.findViewById(R.id.etFirstName);
-        EditText etLN = view.findViewById(R.id.etLastName);
-        EditText etEmail = view.findViewById(R.id.etEmail);
-        EditText etPass = view.findViewById(R.id.etPassword);
+    private void showEditDialog(AccountRow row) {
+        BottomSheetDialog dlg = new BottomSheetDialog(this);
+        View view = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_add_edit_user, null, false);
+        dlg.setContentView(view);
+
+        TextView tvTitle = view.findViewById(R.id.tvDialogTitle);
+        if (tvTitle != null) tvTitle.setText("Uredi nalog");
+
+        EditText etFN      = view.findViewById(R.id.etFirstName);
+        EditText etLN      = view.findViewById(R.id.etLastName);
+        EditText etEmail   = view.findViewById(R.id.etEmail);
+        EditText etPass    = view.findViewById(R.id.etPassword);
         EditText etConfirm = view.findViewById(R.id.etConfirmPassword);
 
-        tvRole.setText(currentType.equals("user") ? "User" : "Kontrolor");
+        if (etFN    != null) etFN.setText(row.firstName);
+        if (etLN    != null) etLN.setText(row.lastName);
+        if (etEmail != null) { etEmail.setText(row.email); etEmail.setEnabled(false); }
+        if (etPass    != null) etPass.setHint("Nova lozinka (opciono)");
+        if (etConfirm != null) etConfirm.setHint("Potvrdi novu lozinku");
 
-        if (etFN != null) etFN.setText(row.firstName);
-        if (etLN != null) etLN.setText(row.lastName);
+        AppCompatButton btnSave   = view.findViewById(R.id.btnSave);
+        AppCompatButton btnCancel = view.findViewById(R.id.btnCancel);
 
-        if (etEmail != null) {
-            etEmail.setText(row.email);
-            etEmail.setEnabled(false);
-        }
+        btnSave.setText("Spasi");
 
-        if (etPass != null) {
-            etPass.setVisibility(View.VISIBLE);
-            etPass.setText("");
-            etPass.setHint("Nova lozinka (opciono)");
-        }
+        btnSave.setOnClickListener(x -> {
+            Map<String, Object> upd = new HashMap<>();
+            upd.put("firstName", etFN != null ? etFN.getText().toString().trim() : "");
+            upd.put("lastName",  etLN != null ? etLN.getText().toString().trim() : "");
 
-        if (etConfirm != null) {
-            etConfirm.setVisibility(View.VISIBLE);
-            etConfirm.setText("");
-            etConfirm.setHint("Potvrdi novu lozinku");
-        }
+            FirebaseUtils.user(row.uid).updateChildren(upd)
+                    .addOnSuccessListener(v1 -> {
+                        toast("Spašeno.");
+                        loadAllAccounts();
+                    })
+                    .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
 
-        new AlertDialog.Builder(this)
-                .setTitle("Uredi " + (currentType.equals("user") ? "usera" : "kontrolora"))
-                .setView(view)
-                .setPositiveButton("Spasi", (d, w) -> {
+            String newPass = etPass    != null ? etPass.getText().toString().trim()    : "";
+            String conf    = etConfirm != null ? etConfirm.getText().toString().trim() : "";
 
-                    Map<String, Object> upd = new HashMap<>();
-                    upd.put("firstName", etFN != null ? etFN.getText().toString().trim() : "");
-                    upd.put("lastName", etLN != null ? etLN.getText().toString().trim() : "");
+            if (!TextUtils.isEmpty(newPass)) {
+                if (newPass.length() < 6) {
+                    toast("Nova lozinka mora imati najmanje 6 znakova.");
+                    return;
+                }
+                if (!TextUtils.isEmpty(conf) && !newPass.equals(conf)) {
+                    toast("Lozinke se ne podudaraju.");
+                    return;
+                }
 
-                    FirebaseUtils.user(row.uid).updateChildren(upd)
-                            .addOnSuccessListener(v1 -> {
-                                toast("Spašeno.");
-                                loadListForRole(currentType);
-                            })
-                            .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
+                FirebaseAuth.getInstance().sendPasswordResetEmail(row.email)
+                        .addOnSuccessListener(v2 -> toast("Poslan reset email na: " + row.email))
+                        .addOnFailureListener(e -> toast("Ne mogu poslati reset email: " + e.getMessage()));
+            }
 
-                    String newPass = etPass != null ? etPass.getText().toString().trim() : "";
-                    String conf = etConfirm != null ? etConfirm.getText().toString().trim() : "";
+            dlg.dismiss();
+        });
 
-                    if (!TextUtils.isEmpty(newPass)) {
-                        if (newPass.length() < 6) { toast("Nova lozinka mora imati najmanje 6 znakova."); return; }
-                        if (etConfirm != null && !TextUtils.isEmpty(conf) && !newPass.equals(conf)) {
-                            toast("Lozinke se ne podudaraju.");
-                            return;
-                        }
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
 
-                        // Bez Admin SDK: šaljemo reset email
-                        FirebaseAuth.getInstance().sendPasswordResetEmail(row.email)
-                                .addOnSuccessListener(v2 -> toast("Poslan reset email na: " + row.email))
-                                .addOnFailureListener(e -> toast("Ne mogu poslati reset email: " + e.getMessage()));
-                    }
-                })
-                .setNegativeButton("Otkaži", null)
-                .show();
+        dlg.show();
     }
 
-    private void confirmDelete(AccountRow row) {
-        new AlertDialog.Builder(this)
-                .setTitle("Brisanje")
-                .setMessage("Obrisati " + (currentType.equals("user") ? "usera" : "kontrolora") + " " + row.email + " iz baze?")
-                .setPositiveButton("Obriši", (d, w) -> {
-                    FirebaseUtils.user(row.uid).removeValue();
-                    FirebaseUtils.role(row.uid).removeValue();
-                    FirebaseUtils.balance(row.uid).removeValue();
-                    toast("Obrisan iz baze. (Auth nalog ostaje — treba Admin SDK/Cloud Function)");
-                    loadListForRole(currentType);
-                })
-                .setNegativeButton("Otkaži", null)
-                .show();
+    // ═══════════════════════════════════════════════════════
+    // DELETE
+    // ═══════════════════════════════════════════════════════
+
+    private void showDeleteConfirmDialog(AccountRow row) {
+        BottomSheetDialog dlg = new BottomSheetDialog(this);
+        View v = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_confirm_delete_user, null, false);
+        dlg.setContentView(v);
+
+        TextView tvName  = v.findViewById(R.id.tvDeleteUserName);
+        TextView tvEmail = v.findViewById(R.id.tvDeleteUserEmail);
+
+        String fullName = ((row.firstName == null ? "" : row.firstName) + " "
+                + (row.lastName == null ? "" : row.lastName)).trim();
+        tvName.setText(TextUtils.isEmpty(fullName) ? "(Bez imena)" : fullName);
+        tvEmail.setText(row.email == null ? "" : row.email);
+
+        AppCompatButton btnConfirm = v.findViewById(R.id.btnConfirmDeleteUser);
+        AppCompatButton btnCancel  = v.findViewById(R.id.btnCancelDeleteUser);
+
+        btnConfirm.setOnClickListener(x -> {
+            dlg.dismiss();
+            deleteAccount(row);
+        });
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
+    }
+
+    private void deleteAccount(AccountRow row) {
+        FirebaseUtils.user(row.uid).removeValue();
+        FirebaseUtils.role(row.uid).removeValue();
+        FirebaseUtils.balance(row.uid).removeValue();
+        toast("Nalog obrisan iz baze.");
+        loadAllAccounts();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════
+
+    private static String initialsFor(String firstName, String lastName, String email) {
+        String fn = firstName == null ? "" : firstName.trim();
+        String ln = lastName == null ? "" : lastName.trim();
+
+        if (!fn.isEmpty() && !ln.isEmpty()) {
+            return (String.valueOf(fn.charAt(0)) + ln.charAt(0)).toUpperCase(Locale.ROOT);
+        }
+        if (!fn.isEmpty()) {
+            return String.valueOf(fn.charAt(0)).toUpperCase(Locale.ROOT);
+        }
+        if (email != null && !email.isEmpty()) {
+            return String.valueOf(email.charAt(0)).toUpperCase(Locale.ROOT);
+        }
+        return "?";
     }
 
     private void toast(String s) {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show();
     }
 
-    // ==== Model + Adapter ====
+    // ═══════════════════════════════════════════════════════
+    // MODEL + ADAPTER
+    // ═══════════════════════════════════════════════════════
 
     static class AccountRow {
-        String uid, email, firstName, lastName;
+        String uid, email, firstName, lastName, role;
     }
 
     class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.VH> {
@@ -382,24 +618,23 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         }
 
         class VH extends RecyclerView.ViewHolder {
-            TextView t1, t2;
-            Button btnEdit, btnDelete;
+            View vAvatarBg;
+            TextView tvAvatar, rowTitle, rowSubtitle, tvRoleBadge;
 
             VH(@NonNull View v) {
                 super(v);
-                t1 = v.findViewById(R.id.rowTitle);
-                t2 = v.findViewById(R.id.rowSubtitle);
-                btnEdit = v.findViewById(R.id.btnEdit);
-                btnDelete = v.findViewById(R.id.btnDelete);
-
-                View btnRole = v.findViewById(R.id.btnRole);
-                if (btnRole != null) btnRole.setVisibility(View.GONE);
+                vAvatarBg    = v.findViewById(R.id.vAvatarBg);
+                tvAvatar     = v.findViewById(R.id.tvAvatar);
+                rowTitle     = v.findViewById(R.id.rowTitle);
+                rowSubtitle  = v.findViewById(R.id.rowSubtitle);
+                tvRoleBadge  = v.findViewById(R.id.tvRoleBadge);
             }
         }
 
         @NonNull @Override
         public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.row_three_actions, parent, false);
+            View v = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.row_admin_user, parent, false);
             return new VH(v);
         }
 
@@ -410,12 +645,35 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
             String fn = it.firstName == null ? "" : it.firstName;
             String ln = it.lastName == null ? "" : it.lastName;
             String title = (fn + " " + ln).trim();
-            h.t1.setText(title.isEmpty() ? "(Bez imena)" : title);
+            h.rowTitle.setText(title.isEmpty() ? "(Bez imena)" : title);
+            h.rowSubtitle.setText(it.email == null ? "" : it.email);
 
-            h.t2.setText(it.email == null ? "" : it.email);
+            h.tvAvatar.setText(initialsFor(fn, ln, it.email));
 
-            h.btnEdit.setOnClickListener(v -> showEditDialog(it));
-            h.btnDelete.setOnClickListener(v -> confirmDelete(it));
+            int avatarBgRes, avatarTextColor, badgeBgRes, badgeTextColor;
+            String badgeText;
+
+            if ("kontrolor".equals(it.role)) {
+                avatarBgRes     = R.drawable.bg_avatar_amber;
+                avatarTextColor = ContextCompat.getColor(AdminManageAccountsActivity.this, R.color.amber_700);
+                badgeBgRes      = R.drawable.bg_role_kontrolor;
+                badgeTextColor  = ContextCompat.getColor(AdminManageAccountsActivity.this, R.color.amber_700);
+                badgeText       = "kontrolor";
+            } else {
+                avatarBgRes     = R.drawable.bg_avatar_blue;
+                avatarTextColor = ContextCompat.getColor(AdminManageAccountsActivity.this, R.color.blue_600);
+                badgeBgRes      = R.drawable.bg_role_user;
+                badgeTextColor  = ContextCompat.getColor(AdminManageAccountsActivity.this, R.color.blue_600);
+                badgeText       = "user";
+            }
+
+            h.vAvatarBg.setBackgroundResource(avatarBgRes);
+            h.tvAvatar.setTextColor(avatarTextColor);
+            h.tvRoleBadge.setBackgroundResource(badgeBgRes);
+            h.tvRoleBadge.setTextColor(badgeTextColor);
+            h.tvRoleBadge.setText(badgeText);
+
+            h.itemView.setOnClickListener(v -> showUserActionsDialog(it));
         }
 
         @Override

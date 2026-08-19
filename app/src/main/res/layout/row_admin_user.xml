@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    row_admin_user.xml
+    Kartica jednog korisnika u listi. Klik na cijeli row otvara dialog_user_actions.
+    ID-ovi: tvAvatar, rowTitle, rowSubtitle, tvRoleBadge, vAvatarBg
+-->
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rowRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardCornerRadius="22dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp">
+
+        <!-- Avatar (background boja se postavlja iz koda kroz vAvatarBg) -->
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="14dp">
+
+            <View
+                android:id="@+id/vAvatarBg"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_avatar_blue" />
+
+            <TextView
+                android:id="@+id/tvAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:textColor="@color/blue_600"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.02"
+                tools:text="MD" />
+        </FrameLayout>
+
+        <!-- Ime + email -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/rowTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="15sp"
+                android:textColor="@color/foreground"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="Mustafa Demirovic" />
+
+            <TextView
+                android:id="@+id/rowSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="12sp"
+                android:textColor="@color/muted_foreground"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="mustafa@gmail.com" />
+        </LinearLayout>
+
+        <!-- Role badge -->
+        <TextView
+            android:id="@+id/tvRoleBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/blue_600"
+            android:background="@drawable/bg_role_user"
+            android:letterSpacing="0.03"
+            android:layout_marginEnd="6dp"
+            tools:text="user" />
+
+        <!-- Strelica -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="›"
+            android:textSize="22sp"
+            android:textColor="@color/muted_foreground" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

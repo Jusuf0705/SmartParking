@@ -1,256 +1,247 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Ovaj layout koristi android:fitsSystemWindows="true" na korijenu kako bi
-    ScrollView automatski ostavio prostor za:
-      - Status bar (gore): sat, signal, baterija
-      - Navigation bar (dole): gesture bar ili navigacijska traka uređaja
--->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- activity_login.xml — šira form kartica, usklađen s registracijom -->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:fillViewport="true"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
+    android:background="@color/background"
     android:fitsSystemWindows="true"
     tools:context=".ui.auth.LoginActivity">
 
-    <LinearLayout
-        android:orientation="vertical"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="32dp"
-        android:paddingBottom="32dp"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        android:fillViewport="true">
 
-        <!-- Logo badge -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:layout_marginBottom="8dp">
+            android:orientation="vertical">
 
-            <androidx.cardview.widget.CardView
-                android:layout_width="72dp"
-                android:layout_height="72dp"
-                app:cardCornerRadius="36dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="?attr/colorPrimary">
+            <!-- HERO HEADER -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:background="@drawable/bg_header_gradient"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingTop="52dp"
+                android:paddingBottom="48dp">
+
+                <FrameLayout
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_marginBottom="18dp"
+                    android:background="@drawable/bg_white_18_circle">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_car"
+                        app:tint="@color/white"
+                        android:contentDescription="Logo" />
+                </FrameLayout>
 
                 <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:text="P"
-                    android:textSize="34sp"
+                    android:id="@+id/tvAppTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Smart Parking"
+                    android:textColor="@color/white"
+                    android:textSize="30sp"
                     android:textStyle="bold"
-                    android:textColor="?attr/colorOnPrimary"
-                    android:gravity="center"
-                    android:fontFamily="sans-serif-black" />
+                    android:letterSpacing="-0.02"
+                    android:layout_marginBottom="6dp" />
 
+                <TextView
+                    android:id="@+id/tvSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dobrodošli nazad 👋"
+                    android:textColor="@color/blue_100"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <!-- FORM CARD — šira (manje margine, bez compat paddinga) -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_marginTop="-30dp"
+                app:cardCornerRadius="26dp"
+                app:cardElevation="10dp"
+                app:cardPreventCornerOverlap="false"
+                app:cardBackgroundColor="@color/white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Prijava"
+                        android:textColor="@color/foreground"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="18dp" />
+
+                    <!-- EMAIL -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="EMAIL"
+                        android:textColor="@color/muted_foreground"
+                        android:textSize="10sp"
+                        android:textAllCaps="true"
+                        android:letterSpacing="0.12"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="@color/blue_600"
+                        app:boxStrokeWidth="2dp"
+                        app:boxBackgroundColor="@color/blue_50"
+                        app:hintEnabled="false"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etEmail"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:hint="vas@email.com"
+                            android:textColorHint="@color/muted_foreground"
+                            android:textColor="@color/foreground"
+                            android:textSize="14sp"
+                            android:inputType="textEmailAddress"
+                            android:autofillHints="emailAddress"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- LOZINKA -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="LOZINKA"
+                        android:textColor="@color/muted_foreground"
+                        android:textSize="10sp"
+                        android:textAllCaps="true"
+                        android:letterSpacing="0.12"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="@color/blue_600"
+                        app:boxStrokeWidth="2dp"
+                        app:boxBackgroundColor="@color/blue_50"
+                        app:endIconMode="password_toggle"
+                        app:endIconTint="@color/blue_600"
+                        app:hintEnabled="false"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPassword"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:hint="••••••••"
+                            android:textColorHint="@color/muted_foreground"
+                            android:textColor="@color/foreground"
+                            android:textSize="14sp"
+                            android:inputType="textPassword"
+                            android:autofillHints="password"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="52dp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:id="@+id/tvForgotPassword"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:text="Zaboravili ste lozinku?"
+                        android:textColor="@color/blue_600"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="20dp"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <!-- PRIJAVI SE -->
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnLogin"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="Prijavi se"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="false"
+                        android:background="@drawable/bg_btn_active_primary"
+                        android:backgroundTint="@null"
+                        android:stateListAnimator="@null" />
+                </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-        </LinearLayout>
-
-        <!-- Naslov -->
-        <TextView
-            android:id="@+id/tvAppTitle"
-            android:text="Smart Parking"
-            android:textSize="30sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface"
-            android:letterSpacing="0.04"
-            android:gravity="center"
-            android:layout_marginTop="16dp"
-            android:fontFamily="sans-serif-black"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <!-- Podnaslov -->
-        <TextView
-            android:id="@+id/tvSubtitle"
-            android:text="Prijava u nalog"
-            android:textSize="14sp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:gravity="center"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="40dp"
-            android:letterSpacing="0.03"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <!-- Kartica forme -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorSurfaceVariant">
-
+            <!-- Registracija (dva reda, centrirano) -->
             <LinearLayout
-                android:orientation="vertical"
-                android:padding="24dp"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:paddingTop="16dp"
+                android:paddingBottom="32dp">
 
-                <!-- Email label -->
                 <TextView
-                    android:text="Email adresa"
-                    android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:letterSpacing="0.06"
-                    android:textAllCaps="true"
-                    android:layout_marginBottom="8dp"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-                <!-- Email -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="20dp"
-                    app:boxBackgroundMode="outline"
-                    app:boxCornerRadiusTopStart="14dp"
-                    app:boxCornerRadiusTopEnd="14dp"
-                    app:boxCornerRadiusBottomStart="14dp"
-                    app:boxCornerRadiusBottomEnd="14dp"
-                    app:boxStrokeColor="?attr/colorOutline"
-                    app:boxStrokeWidth="1dp"
-                    app:hintEnabled="false"
-                    app:endIconMode="clear_text"
-                    app:endIconTint="?attr/colorOnSurfaceVariant">
+                    android:text="Nemate nalog?"
+                    android:textColor="@color/muted_foreground"
+                    android:textSize="13sp" />
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etEmail"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="vas@email.com"
-                        android:inputType="textEmailAddress"
-                        android:autofillHints="emailAddress"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textColorHint="?attr/colorOnSurfaceVariant"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp"
-                        android:background="@null"
-                        android:minHeight="52dp"/>
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Lozinka label -->
                 <TextView
-                    android:text="Lozinka"
-                    android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:letterSpacing="0.06"
-                    android:textAllCaps="true"
-                    android:layout_marginBottom="8dp"
+                    android:id="@+id/btnGoRegister"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-                <!-- Lozinka -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:boxBackgroundMode="outline"
-                    app:boxCornerRadiusTopStart="14dp"
-                    app:boxCornerRadiusTopEnd="14dp"
-                    app:boxCornerRadiusBottomStart="14dp"
-                    app:boxCornerRadiusBottomEnd="14dp"
-                    app:boxStrokeColor="?attr/colorOutline"
-                    app:boxStrokeWidth="1dp"
-                    app:hintEnabled="false"
-                    app:endIconMode="password_toggle"
-                    app:endIconTint="?attr/colorOnSurfaceVariant">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etPassword"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="••••••••"
-                        android:inputType="textPassword"
-                        android:autofillHints="password"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textColorHint="?attr/colorOnSurfaceVariant"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp"
-                        android:background="@null"
-                        android:minHeight="52dp"/>
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Prijava dugme -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnLogin"
-                    android:text="Prijavi se"
-                    android:textSize="16sp"
+                    android:text="Kreiraj nalog"
+                    android:textColor="@color/blue_600"
+                    android:textSize="14sp"
                     android:textStyle="bold"
-                    android:textColor="?attr/colorOnPrimary"
-                    android:letterSpacing="0.02"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="24dp"
-                    app:backgroundTint="?attr/colorPrimary"
-                    app:cornerRadius="16dp"
-                    app:elevation="0dp" />
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp" />
 
+                <TextView
+                    android:id="@+id/tvNoAccount"
+                    android:visibility="gone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- Separator -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="28dp"
-            android:layout_marginBottom="20dp">
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:background="?attr/colorOutline" />
-
-            <TextView
-                android:text="  NEMATE NALOG?  "
-                android:textSize="11sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:letterSpacing="0.08"
-                android:textAllCaps="true"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:background="?attr/colorOutline" />
         </LinearLayout>
+    </ScrollView>
 
-        <!-- tvNoAccount (ID zadržan, skriven) -->
-        <TextView
-            android:id="@+id/tvNoAccount"
-            android:text="Nemate nalog?"
-            android:visibility="gone"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-        <!-- Registracija dugme -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnGoRegister"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:text="Kreiraj nalog"
-            android:textSize="15sp"
-            android:textColor="?attr/colorPrimary"
-            android:letterSpacing="0.02"
-            app:strokeColor="?attr/colorPrimary"
-            app:strokeWidth="1.5dp"
-            app:cornerRadius="16dp" />
-
-    </LinearLayout>
-</ScrollView>
+</FrameLayout>

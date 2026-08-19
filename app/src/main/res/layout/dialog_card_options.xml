@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="20dp"
+    android:paddingBottom="24dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_bottom_sheet_handle"
+        android:layout_marginBottom="16dp" />
+
+    <FrameLayout
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="14dp">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_card_options_icon" />
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_credit_card"
+            app:tint="@color/blue_600"
+            android:contentDescription="Kartica" />
+    </FrameLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Kartica"
+        android:textColor="@color/foreground"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:id="@+id/tvOptionsCardNumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="•••• 0000"
+        android:textColor="@color/muted_foreground"
+        android:textSize="13sp"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="20dp"
+        android:fontFamily="monospace" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnEditCard"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="Uredi karticu"
+        android:textAllCaps="false"
+        android:textColor="@color/blue_600"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:background="@drawable/bg_btn_edit_vehicle"
+        android:backgroundTint="@null"
+        android:stateListAnimator="@null"
+        android:layout_marginBottom="10dp" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnDeleteCard"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="Obriši karticu"
+        android:textAllCaps="false"
+        android:textColor="@color/destructive"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:background="@drawable/bg_btn_delete_vehicle"
+        android:backgroundTint="@null"
+        android:stateListAnimator="@null"
+        android:layout_marginBottom="10dp" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnCancelOptions"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="Odustani"
+        android:textAllCaps="false"
+        android:textColor="@color/foreground"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:background="@drawable/bg_btn_cancel"
+        android:backgroundTint="@null"
+        android:stateListAnimator="@null" />
+
+</LinearLayout>

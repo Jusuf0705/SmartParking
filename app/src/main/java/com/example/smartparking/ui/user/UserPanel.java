@@ -30,7 +30,6 @@ public class UserPanel extends AppCompatActivity {
 
         nav = findViewById(R.id.bottomNav);
 
-        // ✅ Back dispatcher (radi i za gestu i za dugme nazad)
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() {
                 if (loggingOut) return;
@@ -52,15 +51,12 @@ public class UserPanel extends AppCompatActivity {
             if (id == R.id.tab_parking) {
                 openRoot(new UserParkingFragment());
                 return true;
-
             } else if (id == R.id.tab_pay) {
                 openRoot(new UserPayFragment());
                 return true;
-
             } else if (id == R.id.tab_history) {
                 openRoot(new UserHistoryFragment());
                 return true;
-
             } else if (id == R.id.tab_settings) {
                 openRoot(new UserSettingsFragment());
                 return true;
@@ -69,7 +65,6 @@ public class UserPanel extends AppCompatActivity {
             return false;
         });
 
-        // ✅ Default tab samo prvi put (ne na rotaciji)
         if (savedInstanceState == null) {
             nav.setSelectedItemId(R.id.tab_parking);
         }
@@ -84,14 +79,9 @@ public class UserPanel extends AppCompatActivity {
         }
     }
 
-    /**
-     * Otvara "root" fragment za tab i čisti backstack,
-     * da back dugme ne vraća kroz stare tabove.
-     */
     private void openRoot(@NonNull Fragment fragment) {
         FragmentManager fm = getSupportFragmentManager();
 
-        // očisti backstack (npr. ako si iz Settings->Profile ušao u sub-fragment)
         try {
             fm.executePendingTransactions();
             while (fm.getBackStackEntryCount() > 0) {
@@ -104,10 +94,6 @@ public class UserPanel extends AppCompatActivity {
                 .commit();
     }
 
-    /**
-     * Logout se više NE poziva iz bottom nav (jer nema tab_logout),
-     * nego iz Settings (btnLogOut) — ali ostaje ovdje kao centralna funkcija.
-     */
     public void doLogout() {
         if (loggingOut) return;
         loggingOut = true;

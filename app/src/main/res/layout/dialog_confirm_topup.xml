@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="20dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_bottom_sheet_handle"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Ikonica: plavi krug sa karticom -->
+    <FrameLayout
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_avatar_blue">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_credit_card"
+            app:tint="@color/white"
+            android:contentDescription="Kartica" />
+    </FrameLayout>
+
+    <!-- Naslov -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Dopuniti račun?"
+        android:textColor="@color/foreground"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Iznos će biti naplaćen sa vaše kartice"
+        android:textColor="@color/muted_foreground"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Veliki iznos -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginBottom="18dp">
+
+        <TextView
+            android:id="@+id/tvConfirmTopupAmount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.00 KM"
+            android:textColor="@color/blue_600"
+            android:textSize="42sp"
+            android:textStyle="bold"
+            android:lineSpacingMultiplier="0.9" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Iznos dopune"
+            android:textColor="@color/muted_foreground"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Info box: kartica + trenutno stanje -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_confirm_row"
+        android:padding="14dp"
+        android:layout_marginBottom="20dp">
+
+        <!-- Kartica -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Kartica"
+                android:textColor="@color/muted_foreground"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvConfirmTopupCard"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="•••• ••••"
+                android:textColor="@color/foreground"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+
+        <!-- Trenutno stanje -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Trenutno stanje"
+                android:textColor="@color/muted_foreground"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvConfirmTopupBalance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0.00 KM"
+                android:textColor="@color/foreground"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Nakon dopune (zeleno) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Nakon dopune"
+                android:textColor="@color/muted_foreground"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvConfirmTopupNewBalance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0.00 KM"
+                android:textColor="@color/green_700"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Da -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnConfirmTopupYes"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:text="Da, dopuni"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:background="@drawable/bg_btn_active_primary"
+        android:backgroundTint="@null"
+        android:stateListAnimator="@null"
+        android:layout_marginBottom="10dp" />
+
+    <!-- Ne -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnConfirmTopupNo"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="Ne"
+        android:textAllCaps="false"
+        android:textColor="@color/foreground"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:background="@drawable/bg_btn_cancel"
+        android:backgroundTint="@null"
+        android:stateListAnimator="@null" />
+
+</LinearLayout>

@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- LOKACIJA: res/layout/activity_manage_list.xml -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/colorSurface"
     android:fitsSystemWindows="true">
 
-    <!-- HEADER -->
+    <!-- HEADER: Back (L) + Naslov (C) + Add (R) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="26dp"
-        android:paddingBottom="13dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="24dp">
+        android:paddingTop="20dp"
+        android:paddingBottom="12dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
 
         <!-- Back dugme -->
         <com.google.android.material.button.MaterialButton
@@ -32,33 +35,66 @@
             android:text=""
             android:contentDescription="Nazad"
             app:icon="@drawable/ic_arrow_back_24"
-            app:iconSize="22dp"
+            app:iconSize="18dp"
             app:iconTint="?attr/colorOnSurface"
             app:iconGravity="textStart"
             app:iconPadding="0dp"
-            app:cornerRadius="14dp"
-            app:strokeColor="?attr/colorOutline"
+            app:cornerRadius="10dp"
+            app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp"
+            app:backgroundTint="?attr/colorSurfaceVariant"
+            app:elevation="0dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:ignore="TouchTargetSizeCheck" />
 
-        <!-- Naslov -->
+        <!-- Naslov centriran -->
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Parking lokacije"
-            android:textSize="24sp"
+            android:text="Lista"
+            android:textSize="17sp"
             android:textStyle="bold"
             android:gravity="center"
             android:textColor="?attr/colorOnSurface"
-            android:fontFamily="sans-serif-black"
-            android:letterSpacing="0.02"
+            android:letterSpacing="0.01"
             app:layout_constraintStart_toEndOf="@+id/btnBack"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/fabAdd"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
+
+        <!-- + dugme desno — isti stil kao back -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/fabAdd"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
+            android:text="+"
+            android:textAllCaps="false"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:gravity="center"
+            android:textColor="?attr/colorPrimary"
+            android:contentDescription="Dodaj"
+            android:visibility="gone"
+            app:cornerRadius="10dp"
+            app:strokeColor="?attr/colorOutlineVariant"
+            app:strokeWidth="1dp"
+            app:backgroundTint="?attr/colorSurfaceVariant"
+            app:elevation="0dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:ignore="TouchTargetSizeCheck" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -66,33 +102,9 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:background="?attr/colorOutlineVariant" />
-
-    <!-- Dodaj dugme -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/fabAdd"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="4dp"
-        android:text="Dodaj parking mjesto"
-        android:textAllCaps="false"
-        android:textSize="15sp"
-        android:textStyle="bold"
-        android:textColor="?attr/colorOnPrimary"
-        android:visibility="gone"
-        app:backgroundTint="?attr/colorPrimary"
-        app:cornerRadius="16dp"
-        app:elevation="0dp"
-        app:rippleColor="#33FFFFFF"
-        app:icon="@android:drawable/ic_input_add"
-        app:iconSize="20dp"
-        app:iconTint="?attr/colorOnPrimary"
-        app:iconPadding="10dp" />
+        android:background="?attr/colorOutlineVariant" />
 
     <!-- RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
@@ -101,7 +113,8 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingTop="8dp"
-        android:paddingBottom="16dp" />
+        android:paddingTop="10dp"
+        android:paddingBottom="16dp"
+        android:scrollbars="none" />
 
 </LinearLayout>

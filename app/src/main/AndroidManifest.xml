@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
     <!-- Internet / Firebase -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- Lokacija -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- Lokacija -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
@@ -16,67 +13,51 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SmartParking">
-
+        <activity
+            android:name=".ui.admin.ManageZonesActivity"
+            android:exported="false" />
         <!-- 🔹 LAUNCHER -->
         <activity
             android:name=".ui.auth.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
-        <!-- 🔹 Auth -->
+        </activity> <!-- 🔹 Auth -->
         <activity
             android:name=".ui.auth.RegisterActivity"
-            android:exported="false" />
-
-        <!-- 🔹 User panel -->
+            android:exported="false" /> <!-- 🔹 User panel -->
         <activity
             android:name=".ui.user.UserPanel"
             android:exported="false"
-            android:windowSoftInputMode="stateHidden|adjustPan" />
-
-
-        <!-- 🔹 Dokupi kredit -->
+            android:windowSoftInputMode="stateHidden|adjustPan" /> <!-- 🔹 Dokupi kredit -->
         <activity
             android:name=".ui.user.userSettings.TopUpActivity"
-            android:exported="false" />
-
-        <!-- 🔹 Upravljanje vozilima -->
+            android:exported="false" /> <!-- 🔹 Upravljanje vozilima -->
         <activity
             android:name=".ui.user.userSettings.VehiclesActivity"
-            android:exported="false" />
-
-        <!-- 🔹 Admin paneli -->
+            android:exported="false" /> <!-- 🔹 Admin paneli -->
         <activity
             android:name=".ui.admin.AdminPanel"
             android:exported="false" />
-
         <activity
             android:name=".ui.admin.ControlPanelActivity"
             android:exported="false" />
-
         <activity
             android:name=".ui.admin.ManageParkingActivity"
             android:exported="false" />
-
         <activity
             android:name=".ui.admin.AdminManageAccountsActivity"
             android:exported="false" />
-
         <activity
             android:name=".ui.admin.ManageFinesActivity"
-            android:exported="false" />
-
-        <!-- (Opcionalno) Ako koristiš MainActivity -->
+            android:exported="false" /> <!-- (Opcionalno) Ako koristiš MainActivity -->
         <activity
             android:name=".ui.main.MainActivity"
             android:exported="false" />
-
         <activity android:name=".ui.user.userSettings.AddVehicleActivity" />
-
     </application>
 
 </manifest>

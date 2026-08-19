@@ -1,1019 +1,1017 @@
 package com.example.smartparking.ui.user;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Rect;
 import android.os.Bundle;
-import android.text.InputFilter;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
-import android.widget.Button;
+import android.view.animation.LinearInterpolator;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatButton;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.smartparking.R;
 import com.example.smartparking.data.FirebaseUtils;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.textfield.MaterialAutoCompleteTextView;
-import com.google.android.material.textfield.TextInputLayout;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.MutableData;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.Transaction;
 import com.google.firebase.database.ValueEventListener;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 public class UserPayFragment extends Fragment {
 
-    private static final String TAG = "UserPayFragment";
-    private static final Pattern INVALID_KEY_CHARS = Pattern.compile("[.$#\\[\\]/]");
-
     private static final long ONE_HOUR_MS = 60L * 60L * 1000L;
     private static final long ONE_DAY_MS  = 24L * 60L * 60L * 1000L;
+    private static final long TICK_MS     = 1000L;
+    private static final long DRIFT_MS    = 8000L;
 
-    private static final long TICK_MS  = 1000L;
-    private static final long DRIFT_MS = 8000L;
+    private static final long WELCOME_DIALOG_MS = 5000L;
 
-    private static final double MIN_REFUND_KM = 0.05;
-    private static final int MAX_TAKEOVER_RETRY = 1;
-
-    // ---- prefs ----
     private static final String PREFS_NAME = "sp_user_pay";
-    private static final String K_UID = "uid";
-    private static final String K_LOT_ID = "lot_id";
-    private static final String K_LOT_POS = "lot_pos";
-    private static final String K_SPOT = "spot";
-    private static final String K_PLATE = "plate";
-    private static final String K_HAS_ACTIVE = "has_active";
+    private static final String K_UID         = "uid";
+    private static final String K_LOT_ID      = "lot_id";
+    private static final String K_LOT_POS     = "lot_pos";
+    private static final String K_VEHICLE_POS = "vehicle_pos";
 
-    // UI
-    private TextView tvBalance, tvStatus;
-    private View cardStatus;
+    private static final int TYPE_VEHICLE = 0;
+    private static final int TYPE_ADD     = 1;
 
-    // ✅ Parking dropdown (umjesto Spinner-a)
-    private TextInputLayout tilParking;
-    private MaterialAutoCompleteTextView etParking;
+    private TextView tvBalance, tvBalanceDecimal;
 
-    private EditText etSpot;
+    private ViewPager2 vpVehicles;
+    private VehicleSliderAdapter vehicleAdapter;
+    private LinearLayout llVehicleDots;
+    private final List<VehicleDisplay> vehicles = new ArrayList<>();
+    private int currentVehicleIndex = 0;
 
-    private TextInputLayout tilPlate;
-    private AutoCompleteTextView etPlate;
+    private LinearLayout llActiveSessions, llSessionDots;
+    private ViewPager2 vpActiveSessions;
+    private SessionSliderAdapter sessionAdapter;
+    private TextView tvActiveCount;
+    private final List<ActiveSession> sessionList = new ArrayList<>();
+    private int currentSessionIndex = 0;
 
-    private Button btnPay1h, btnPay2h, btnPay3h, btnPayDay;
-    private Button btnRefund;
+    private LinearLayout llZoneContainer;
+    private final List<AppCompatButton> zoneButtons = new ArrayList<>();
+    private int selectedZoneChip = 0;
 
-    // lots
-    private final List<LotItem> lots = new ArrayList<>();
-    private ArrayAdapter<String> lotsAdapter;
+    private AppCompatButton btnDuration1, btnDuration2;
+    private AppCompatButton btnPay, btnDailyPass;
+    private String selectedDuration = "1h";
 
-    // vehicles dropdown
-    private final List<String> displaySuggestions = new ArrayList<>();
-    private final Map<String, String> displayToPlate = new HashMap<>();
-    private ArrayAdapter<String> plateAdapter;
+    private final List<ZoneItem> zones = new ArrayList<>();
 
-    // status ticker
+    private static class ActiveSession {
+        String plate, zoneName, sessionId;
+        long startTime, endTime;
+        double amount;
+    }
+    private final Map<String, ActiveSession> activeSessionsMap = new HashMap<>();
+
     private Runnable statusTick;
-
-    // active session info
-    private String currentSessionId = null;
-    private String currentLotId = null;
-    private String currentLotName = null;
-    private String currentSpaceKey = null;
-    private String currentPlate = null;
-    private long currentStartTime = 0L;
-    private long currentEndTime = 0L;
-    private double currentAmount = 0.0;
-
-    private boolean isPaying = false;
-    private boolean isRefunding = false;
-
+    private boolean isPaying     = false;
     private boolean restoredOnce = false;
+
+    private double cachedBalance = 0.0;
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inf, @Nullable ViewGroup parent, @Nullable Bundle b) {
+    public View onCreateView(@NonNull LayoutInflater inf,
+                             @Nullable ViewGroup parent,
+                             @Nullable Bundle b) {
+
         View v = inf.inflate(R.layout.fragment_user_pay, parent, false);
 
-        tvBalance  = v.findViewById(R.id.tvBalance);
-        tvStatus   = v.findViewById(R.id.tvStatus);
-        cardStatus = v.findViewById(R.id.cardStatus);
+        tvBalance        = v.findViewById(R.id.tvBalance);
+        tvBalanceDecimal = v.findViewById(R.id.tvBalanceDecimal);
 
-        // ✅ parking dropdown
-        tilParking = v.findViewById(R.id.tilParking);
-        etParking  = v.findViewById(R.id.etParking);
+        llActiveSessions = v.findViewById(R.id.llActiveSessions);
+        llSessionDots    = v.findViewById(R.id.llSessionDots);
+        vpActiveSessions = v.findViewById(R.id.vpActiveSessions);
+        tvActiveCount    = v.findViewById(R.id.tvActiveCount);
 
-        etSpot = v.findViewById(R.id.etSpot);
-
-        tilPlate = v.findViewById(R.id.tilPlate);
-        etPlate  = v.findViewById(R.id.etPlate);
-
-        btnPay1h  = v.findViewById(R.id.btnPay1h);
-        btnPay2h  = v.findViewById(R.id.btnPay2h);
-        btnPay3h  = v.findViewById(R.id.btnPay3h);
-        btnPayDay = v.findViewById(R.id.btnPayDay);
-
-        try { btnRefund = v.findViewById(R.id.btnRefund); } catch (Exception ignored) { btnRefund = null; }
-
-        if (cardStatus != null) cardStatus.setVisibility(View.GONE);
-        if (tvStatus != null) tvStatus.setText("");
-        if (btnRefund != null) btnRefund.setVisibility(View.GONE);
-
-        // ✅ adapter za parkinge
-        if (etParking == null) throw new IllegalStateException("etParking mora biti MaterialAutoCompleteTextView sa id=@+id/etParking");
-
-        lotsAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, new ArrayList<>());
-        etParking.setAdapter(lotsAdapter);
-        etParking.setThreshold(0);
-
-        etParking.setOnClickListener(vw -> showParkingDropdownIfAny());
-        etParking.setOnFocusChangeListener((vw, hasFocus) -> { if (hasFocus) showParkingDropdownIfAny(); });
-
-        etParking.setOnItemClickListener((parent1, view, position, id) -> {
-            saveFormState();
-            refreshActiveStatusForCurrentPlate();
-        });
-
-        // Plate dropdown
-        if (etPlate == null) throw new IllegalStateException("etPlate mora biti AutoCompleteTextView sa id=@+id/etPlate");
-
-        etPlate.setFilters(new InputFilter[]{ new InputFilter.AllCaps(), new InputFilter.LengthFilter(16) });
-
-        plateAdapter = new ArrayAdapter<>(requireContext(),
-                android.R.layout.simple_list_item_1,
-                displaySuggestions);
-
-        etPlate.setAdapter(plateAdapter);
-        etPlate.setThreshold(0);
-
-// ⬇️ OVDJE DODAJ OVO ⬇️
-        etPlate.setOnItemClickListener((adapterView, itemView, position, id) -> {
-
-
-            String display = (String) adapterView.getItemAtPosition(position);
-
-            String plateOnly = displayToPlate.get(display);
-
-            if (!TextUtils.isEmpty(plateOnly)) {
-                etPlate.setText(plateOnly);
-                etPlate.setSelection(plateOnly.length());
+        sessionAdapter = new SessionSliderAdapter();
+        vpActiveSessions.setAdapter(sessionAdapter);
+        vpActiveSessions.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override public void onPageSelected(int position) {
+                currentSessionIndex = position;
+                updateSessionDots();
             }
-
-            saveFormState();
-            refreshActiveStatusForCurrentPlate();
         });
 
+        vpVehicles    = v.findViewById(R.id.vpVehicles);
+        llVehicleDots = v.findViewById(R.id.llVehicleDots);
 
-
-        // ✅ OTVORI DROPDOWN uvijek kad klikne u polje
-        etPlate.setOnClickListener(vw -> showPlateDropdownIfAny());
-
-// ✅ OTVORI DROPDOWN kad dobije fokus (npr. tab/next)
-        etPlate.setOnFocusChangeListener((vw, hasFocus) -> {
-            if (hasFocus) showPlateDropdownIfAny();
-        });
-
-// ✅ IKONA (strelica) otvara listu uvijek
-        if (tilPlate != null) {
-            tilPlate.setEndIconOnClickListener(vw -> {
-                if (!etPlate.hasFocus()) etPlate.requestFocus();
-                showPlateDropdownIfAny();
-            });
-        }
-
-
-        etPlate.addTextChangedListener(new SimpleTextWatcher(() -> {
-            saveFormState();
-            refreshActiveStatusForCurrentPlate();
-
-            if (!isAdded()) return;
-            String txt = etPlate.getText() == null ? "" : etPlate.getText().toString().trim();
-            if (txt.isEmpty()) {
-                etPlate.post(() -> {
-                    if (!isAdded()) return;
-                    if (etPlate.hasFocus()) showPlateDropdownIfAny();
-                });
+        vehicleAdapter = new VehicleSliderAdapter();
+        vpVehicles.setAdapter(vehicleAdapter);
+        vpVehicles.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override public void onPageSelected(int position) {
+                currentVehicleIndex = position;
+                updateVehicleDots();
+                saveFormState();
             }
-        }));
+        });
 
-        etSpot.addTextChangedListener(new SimpleTextWatcher(() -> {
-            saveFormState();
-            refreshActiveStatusForCurrentPlate();
-        }));
+        llZoneContainer = v.findViewById(R.id.llZoneContainer);
 
-        btnPay1h.setOnClickListener(vw -> { if (validateInputsBasic()) showConfirmDialog("1h"); });
-        btnPay2h.setOnClickListener(vw -> { if (validateInputsBasic()) showConfirmDialog("2h"); });
-        btnPay3h.setOnClickListener(vw -> { if (validateInputsBasic()) showConfirmDialog("3h"); });
-        btnPayDay.setOnClickListener(vw -> { if (validateInputsBasic()) showConfirmDialog("day"); });
+        btnDuration1 = v.findViewById(R.id.btnDuration1);
+        btnDuration2 = v.findViewById(R.id.btnDuration2);
+        btnPay       = v.findViewById(R.id.btnPay);
+        btnDailyPass = v.findViewById(R.id.btnDailyPass);
 
-        if (btnRefund != null) btnRefund.setOnClickListener(vw -> showRefundDialog());
+        if (btnDuration1 != null) btnDuration1.setOnClickListener(vw -> selectDuration("1h", 0));
+        if (btnDuration2 != null) btnDuration2.setOnClickListener(vw -> selectDuration("2h", 1));
+        if (btnDailyPass != null) btnDailyPass.setOnClickListener(vw -> selectDuration("day", 2));
+        updateDurationChipStyles(0);
 
-        ensureCorrectUserSessionAndClearIfSwitched(true);
+        if (btnPay != null) btnPay.setOnClickListener(vw -> {
+            if (validateInputs()) showConfirmDialog(selectedDuration);
+        });
 
-        loadBalance();
-        loadParkingLots();
-        loadUserVehiclesForDropdown();
+        AppCompatButton btnOpenTopup = v.findViewById(R.id.btnOpenTopup);
+        if (btnOpenTopup != null) btnOpenTopup.setOnClickListener(vw -> openAddCardScreen());
+
+        loadBalanceAndCheckWelcomeBonus();
+        loadZones();
+        loadUserVehicles();
 
         return v;
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        ensureCorrectUserSessionAndClearIfSwitched(false);
+    // ═══════════════════════════════════════════════════════
+    // WELCOME BONUS
+    // ═══════════════════════════════════════════════════════
 
-        tryAutoShowMyActiveSession();
-        restoreFormStateIfNeeded();
-        refreshActiveStatusForCurrentPlate();
+    private void loadBalanceAndCheckWelcomeBonus() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        Context ctx = getContext();
+        if (ctx == null) { attachBalanceListener(uid); return; }
+
+        SharedPreferences bonusPrefs = ctx.getApplicationContext()
+                .getSharedPreferences("sp_welcome_bonus", Context.MODE_PRIVATE);
+
+        boolean granted = bonusPrefs.getBoolean("granted_"  + uid, false);
+        boolean uiShown = bonusPrefs.getBoolean("ui_shown_" + uid, false);
+
+        attachBalanceListener(uid);
+
+        if (granted && !uiShown) {
+            showWelcomeBonusDialog();
+            bonusPrefs.edit().putBoolean("ui_shown_" + uid, true).apply();
+        } else if (!granted) {
+            com.example.smartparking.data.WelcomeBonus.grantIfNew(ctx, uid, wasGranted -> {
+                if (!isAdded()) return;
+                if (wasGranted) {
+                    showWelcomeBonusDialog();
+                    ctx.getApplicationContext()
+                            .getSharedPreferences("sp_welcome_bonus", Context.MODE_PRIVATE)
+                            .edit()
+                            .putBoolean("ui_shown_" + uid, true)
+                            .apply();
+                }
+            });
+        }
     }
 
-    // =========================================================
-    // Dropdown helpers
-    // =========================================================
-    private void showPlateDropdownIfAny() {
-        if (!isAdded()) return;
-        if (plateAdapter == null) return;
-        if (plateAdapter.getCount() <= 0) return;
-
-        etPlate.post(() -> {
-            if (!isAdded()) return;
-            etPlate.showDropDown(); // ne provjeravaj isPopupShowing - samo pokaži
-        });
-    }
-
-    private void showParkingDropdownIfAny() {
-        if (!isAdded()) return;
-        if (lotsAdapter == null) return;
-        if (lotsAdapter.getCount() <= 0) return;
-
-        etParking.post(() -> {
-            if (!isAdded()) return;
-            if (!etParking.isPopupShowing()) etParking.showDropDown();
-        });
-    }
-
-    // =========================================================
-    // Lot selection helpers
-    // =========================================================
-    private int getSelectedLotIndex() {
-        if (lots.isEmpty()) return -1;
-
-        String txt = etParking.getText() == null ? "" : etParking.getText().toString().trim();
-        if (!TextUtils.isEmpty(txt)) {
-            for (int i = 0; i < lots.size(); i++) {
-                String name = lots.get(i).name == null ? "" : lots.get(i).name.trim();
-                if (txt.equals(name)) return i;
+    private void attachBalanceListener(String uid) {
+        FirebaseUtils.balance(uid).addValueEventListener(new ValueEventListener() {
+            @Override public void onDataChange(@NonNull DataSnapshot s) {
+                Double bal = s.getValue(Double.class);
+                double val = bal == null ? 0.0 : bal;
+                cachedBalance = val;
+                long whole = (long) val;
+                int cents = (int) Math.round((val - whole) * 100);
+                if (cents >= 100) { whole += 1; cents = 0; }
+                if (tvBalance != null) tvBalance.setText(String.valueOf(whole));
+                if (tvBalanceDecimal != null)
+                    tvBalanceDecimal.setText(String.format(Locale.getDefault(), ",%02d KM", cents));
             }
+            @Override public void onCancelled(@NonNull DatabaseError e) {}
+        });
+    }
+
+    private void showWelcomeBonusDialog() {
+        if (!isAdded()) return;
+
+        final android.app.Dialog dlg = new android.app.Dialog(requireContext());
+        dlg.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+        View v = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_welcome_bonus, null, false);
+        dlg.setContentView(v);
+        dlg.setCancelable(true);
+
+        if (dlg.getWindow() != null) {
+            dlg.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+            dlg.getWindow().setLayout(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+            dlg.getWindow().setGravity(android.view.Gravity.CENTER);
         }
 
-        // fallback: saved pos
-        SharedPreferences p = prefs();
-        if (p != null) {
-            int savedPos = p.getInt(K_LOT_POS, -1);
-            if (savedPos >= 0 && savedPos < lots.size()) return savedPos;
+        ProgressBar pb = v.findViewById(R.id.pbWelcomeAutoDismiss);
+        AppCompatButton btnClose = v.findViewById(R.id.btnWelcomeClose);
+        btnClose.setOnClickListener(x -> dlg.dismiss());
 
-            String savedLotId = p.getString(K_LOT_ID, "");
-            if (!TextUtils.isEmpty(savedLotId)) {
-                for (int i = 0; i < lots.size(); i++) {
-                    if (savedLotId.equals(lots.get(i).id)) return i;
+        if (pb != null) {
+            android.animation.ObjectAnimator anim =
+                    android.animation.ObjectAnimator.ofInt(pb, "progress", 100, 0);
+            anim.setDuration(WELCOME_DIALOG_MS);
+            anim.setInterpolator(new LinearInterpolator());
+            anim.start();
+        }
+
+        Handler h = new Handler(Looper.getMainLooper());
+        h.postDelayed(() -> { if (dlg.isShowing()) dlg.dismiss(); }, WELCOME_DIALOG_MS);
+
+        dlg.show();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // AKTIVNE SESIJE — ViewPager slajder + dots
+    // ═══════════════════════════════════════════════════════
+
+    private void renderActiveSessions() {
+        if (llActiveSessions == null) return;
+
+        if (activeSessionsMap.isEmpty()) {
+            llActiveSessions.setVisibility(View.GONE);
+            sessionList.clear();
+            sessionAdapter.notifyDataSetChanged();
+            return;
+        }
+
+        llActiveSessions.setVisibility(View.VISIBLE);
+
+        List<ActiveSession> sorted = new ArrayList<>(activeSessionsMap.values());
+        Collections.sort(sorted, (a, bb) -> Long.compare(a.endTime, bb.endTime));
+
+        sessionList.clear();
+        sessionList.addAll(sorted);
+        sessionAdapter.notifyDataSetChanged();
+
+        if (currentSessionIndex >= sessionList.size()) currentSessionIndex = 0;
+        vpActiveSessions.setCurrentItem(currentSessionIndex, false);
+
+        if (tvActiveCount != null)
+            tvActiveCount.setText(sessionList.size() > 1 ? sessionList.size() + " aktivnih" : "");
+
+        updateSessionDots();
+    }
+
+    private void updateSessionDots() {
+        if (llSessionDots == null) return;
+        llSessionDots.removeAllViews();
+        int total = sessionList.size();
+        if (total <= 1) return;
+
+        int activeColor   = 0xFF2563EB;
+        int inactiveColor = 0xFFD0D4E8;
+
+        for (int i = 0; i < total; i++) {
+            View dot = new View(requireContext());
+            boolean isActive = (i == currentSessionIndex);
+            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+            int dotW = (int) android.util.TypedValue.applyDimension(
+                    android.util.TypedValue.COMPLEX_UNIT_DIP, isActive ? 20 : 8, dm);
+            int dotH = (int) android.util.TypedValue.applyDimension(
+                    android.util.TypedValue.COMPLEX_UNIT_DIP, 8, dm);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dotW, dotH);
+            lp.setMargins(4, 0, 4, 0);
+            dot.setLayoutParams(lp);
+            android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+            gd.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+            gd.setCornerRadius(20f);
+            gd.setColor(isActive ? activeColor : inactiveColor);
+            dot.setBackground(gd);
+            llSessionDots.addView(dot);
+        }
+    }
+
+    private void updateAllActiveSessionsUI() {
+        if (vpActiveSessions == null) return;
+
+        long now = System.currentTimeMillis();
+        boolean anyExpired = false;
+
+        RecyclerView rv = (RecyclerView) vpActiveSessions.getChildAt(0);
+        if (rv != null) {
+            for (int i = 0; i < sessionList.size(); i++) {
+                ActiveSession s = sessionList.get(i);
+                RecyclerView.ViewHolder vh = rv.findViewHolderForAdapterPosition(i);
+                if (vh == null) continue;
+                TextView tvCountdown = vh.itemView.findViewById(R.id.tvSessionCountdown);
+                ProgressBar pb       = vh.itemView.findViewById(R.id.progressSessionTimer);
+                if (tvCountdown == null || pb == null) continue;
+
+                long remain = s.endTime - now;
+                long total  = s.endTime - s.startTime;
+                if (remain > 0 && total > 0) {
+                    tvCountdown.setText(formatRemain(remain));
+                    int percent = (int) Math.max(0, Math.min(100, (remain * 100L) / total));
+                    pb.setProgress(percent);
+                } else {
+                    anyExpired = true;
                 }
             }
         }
 
-        return 0; // default na prvi
+        if (anyExpired) {
+            List<String> toRemove = new ArrayList<>();
+            for (Map.Entry<String, ActiveSession> e : activeSessionsMap.entrySet())
+                if (e.getValue().endTime <= now) toRemove.add(e.getKey());
+            for (String k : toRemove) activeSessionsMap.remove(k);
+            renderActiveSessions();
+        }
     }
 
-    private void setSelectedLotIndex(int idx) {
-        if (idx < 0 || idx >= lots.size()) return;
-        if (etParking == null) return;
-        String name = lots.get(idx).name == null ? "" : lots.get(idx).name;
-        // false -> ne triggeruje filter/replace čudno
-        etParking.setText(name, false);
+    // ═══════════════════════════════════════════════════════
+    // VEHICLE DOTS
+    // ═══════════════════════════════════════════════════════
+
+    private void updateVehicleDots() {
+        if (llVehicleDots == null) return;
+        llVehicleDots.removeAllViews();
+        int total = vehicleAdapter.getItemCount();
+        if (total <= 1) return;
+
+        int activeColor   = 0xFF2563EB;
+        int inactiveColor = 0xFFD0D4E8;
+
+        for (int i = 0; i < total; i++) {
+            View dot = new View(requireContext());
+            boolean isActive = (i == currentVehicleIndex);
+            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+            int dotW = (int) android.util.TypedValue.applyDimension(
+                    android.util.TypedValue.COMPLEX_UNIT_DIP, isActive ? 20 : 8, dm);
+            int dotH = (int) android.util.TypedValue.applyDimension(
+                    android.util.TypedValue.COMPLEX_UNIT_DIP, 8, dm);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dotW, dotH);
+            lp.setMargins(4, 0, 4, 0);
+            dot.setLayoutParams(lp);
+            android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+            gd.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+            gd.setCornerRadius(20f);
+            gd.setColor(isActive ? activeColor : inactiveColor);
+            dot.setBackground(gd);
+            llVehicleDots.addView(dot);
+        }
     }
 
-    // =========================================================
-    // PREFS
-    // =========================================================
+    // ═══════════════════════════════════════════════════════
+    // ZONE — dinamički dugmad u horizontalnom slajderu
+    // ═══════════════════════════════════════════════════════
+
+    private void buildZoneButtons() {
+        if (llZoneContainer == null) return;
+        llZoneContainer.removeAllViews();
+        zoneButtons.clear();
+
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        int wPx = (int) android.util.TypedValue.applyDimension(
+                android.util.TypedValue.COMPLEX_UNIT_DIP, 110, dm);
+        int hPx = (int) android.util.TypedValue.applyDimension(
+                android.util.TypedValue.COMPLEX_UNIT_DIP, 52, dm);
+        int mPx = (int) android.util.TypedValue.applyDimension(
+                android.util.TypedValue.COMPLEX_UNIT_DIP, 10, dm);
+
+        for (int i = 0; i < zones.size(); i++) {
+            final int idx = i;
+            AppCompatButton btn = new AppCompatButton(requireContext());
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(wPx, hPx);
+            if (i < zones.size() - 1) lp.setMarginEnd(mPx);
+            btn.setLayoutParams(lp);
+            btn.setText(zones.get(i).name);
+            btn.setAllCaps(false);
+            btn.setTextSize(13f);
+            btn.setTypeface(btn.getTypeface(), android.graphics.Typeface.BOLD);
+            btn.setBackgroundResource(R.drawable.bg_btn_inactive_white);
+            btn.setBackgroundTintList(null);
+            btn.setStateListAnimator(null);
+            btn.setOnClickListener(vw -> selectZoneChip(idx));
+            zoneButtons.add(btn);
+            llZoneContainer.addView(btn);
+        }
+        updateZoneChipUI();
+    }
+
+    private void selectZoneChip(int index) {
+        if (index < 0 || index >= zones.size()) return;
+        selectedZoneChip = index;
+        updateZoneChipUI();
+        saveFormState();
+    }
+
+    private void updateZoneChipUI() {
+        for (int i = 0; i < zoneButtons.size(); i++) {
+            AppCompatButton btn = zoneButtons.get(i);
+            boolean active = (i == selectedZoneChip);
+            btn.setBackgroundResource(active
+                    ? R.drawable.bg_btn_active_primary
+                    : R.drawable.bg_btn_inactive_white);
+            btn.setBackgroundTintList(null);
+            if (isAdded()) btn.setTextColor(ContextCompat.getColor(requireContext(),
+                    active ? R.color.white : R.color.foreground));
+        }
+        updateDurationAndPayLabels();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // DURATION
+    // ═══════════════════════════════════════════════════════
+
+    private void selectDuration(String type, int index) {
+        selectedDuration = type;
+        updateDurationChipStyles(index);
+        updateDurationAndPayLabels();
+    }
+
+    private void updateDurationChipStyles(int activeIndex) {
+        AppCompatButton[] chips = {btnDuration1, btnDuration2, btnDailyPass};
+        for (int i = 0; i < chips.length; i++) {
+            if (chips[i] == null) continue;
+            boolean active = (i == activeIndex);
+            chips[i].setBackgroundResource(active
+                    ? R.drawable.bg_btn_active_primary
+                    : R.drawable.bg_btn_inactive_white);
+            chips[i].setBackgroundTintList(null);
+            if (isAdded()) chips[i].setTextColor(ContextCompat.getColor(requireContext(),
+                    active ? R.color.white : R.color.foreground));
+        }
+    }
+
+    private void updateDurationAndPayLabels() {
+        int idx = getSelectedZoneIndex();
+        ZoneItem zone = (idx >= 0 && idx < zones.size()) ? zones.get(idx) : null;
+        double perHour = zone != null ? zone.perHour : 0.0;
+        double perDay  = zone != null && zone.perDay > 0 ? zone.perDay : perHour * 8.0;
+
+        if (btnDuration1 != null) btnDuration1.setText("1h\n" + fmtAmount(perHour) + " KM");
+        if (btnDuration2 != null) btnDuration2.setText("2h\n" + fmtAmount(perHour * 2) + " KM");
+        if (btnDailyPass != null) btnDailyPass.setText("24h\n" + fmtAmount(perDay) + " KM");
+
+        double payAmount = zone != null ? calcAmount(selectedDuration, zone) : 0.0;
+        if (btnPay != null) btnPay.setText("Plati " + fmtAmount(payAmount) + " KM");
+    }
+
+    private String fmtAmount(double v) { return String.format(Locale.getDefault(), "%.2f", v); }
+
+    private int getSelectedZoneIndex() {
+        if (!zones.isEmpty() && selectedZoneChip >= 0 && selectedZoneChip < zones.size())
+            return selectedZoneChip;
+        return 0;
+    }
+
+    private void setSelectedZoneIndex(int idx) {
+        if (idx < 0 || idx >= zones.size()) return;
+        selectedZoneChip = idx;
+        updateZoneChipUI();
+    }
+
+    private void applySavedZone() {
+        SharedPreferences p = prefs();
+        if (p == null) return;
+        String savedId = p.getString(K_LOT_ID, "");
+        int target = -1;
+        if (!TextUtils.isEmpty(savedId))
+            for (int i = 0; i < zones.size(); i++)
+                if (savedId.equals(zones.get(i).id)) { target = i; break; }
+        if (target < 0) {
+            int savedPos = p.getInt(K_LOT_POS, -1);
+            if (savedPos >= 0 && savedPos < zones.size()) target = savedPos;
+        }
+        if (target >= 0) setSelectedZoneIndex(target);
+        else if (!zones.isEmpty()) setSelectedZoneIndex(0);
+    }
+
     @Nullable
     private SharedPreferences prefs() {
         Context ctx = getContext();
-        if (ctx == null) return null;
-        return ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-    }
-
-    private void ensureCorrectUserSessionAndClearIfSwitched(boolean clearUiNow) {
-        SharedPreferences p = prefs();
-        if (p == null) return;
-
-        String currentUid = FirebaseAuth.getInstance().getUid();
-        String savedUid = p.getString(K_UID, "");
-
-        if (!TextUtils.isEmpty(savedUid) && !TextUtils.equals(savedUid, currentUid)) {
-            clearSavedFormState();
-            restoredOnce = false;
-            stopStatusTicker(false);
-
-            if (clearUiNow && isAdded()) {
-                if (etSpot != null) etSpot.setText("");
-                if (etPlate != null) etPlate.setText("");
-                if (etParking != null) etParking.setText("", false);
-            }
-        }
-
-        if (!TextUtils.isEmpty(currentUid)) {
-            p.edit().putString(K_UID, currentUid).apply();
-        }
+        return ctx == null ? null : ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     }
 
     private void saveFormState() {
         SharedPreferences p = prefs();
         if (p == null) return;
-
-        String uid = FirebaseAuth.getInstance().getUid();
-        int pos = getSelectedLotIndex();
-        String lotId = (pos >= 0 && pos < lots.size()) ? lots.get(pos).id : "";
-        String spot = etSpot != null && etSpot.getText() != null ? etSpot.getText().toString().trim() : "";
-        String plate = resolvePlateFromInput();
-
-        SharedPreferences.Editor ed = p.edit();
-        if (!TextUtils.isEmpty(uid)) ed.putString(K_UID, uid);
-
-        ed.putInt(K_LOT_POS, pos)
-                .putString(K_LOT_ID, lotId == null ? "" : lotId)
-                .putString(K_SPOT, spot)
-                .putString(K_PLATE, plate)
+        int idx       = getSelectedZoneIndex();
+        String zoneId = (idx >= 0 && idx < zones.size()) ? zones.get(idx).id : "";
+        p.edit()
+                .putString(K_UID,      FirebaseAuth.getInstance().getUid())
+                .putString(K_LOT_ID,   zoneId)
+                .putInt(K_LOT_POS,     idx)
+                .putInt(K_VEHICLE_POS, currentVehicleIndex)
                 .apply();
     }
 
-    private void restoreFormStateIfNeeded() {
+    private void restoreFormState() {
         if (restoredOnce) return;
-
         SharedPreferences p = prefs();
-        if (p == null) return;
-
+        if (p == null) { restoredOnce = true; return; }
         String uid = FirebaseAuth.getInstance().getUid();
-        String savedUid = p.getString(K_UID, "");
-        if (!TextUtils.equals(uid, savedUid)) {
-            restoredOnce = true;
-            return;
-        }
-
-        String spot = p.getString(K_SPOT, "");
-        String plate = p.getString(K_PLATE, "");
-
-        if (etSpot != null && TextUtils.isEmpty(etSpot.getText())) {
-            if (!TextUtils.isEmpty(spot)) etSpot.setText(spot);
-        }
-        if (etPlate != null && TextUtils.isEmpty(etPlate.getText())) {
-            if (!TextUtils.isEmpty(plate)) {
-                etPlate.setText(plate);
-                etPlate.setSelection(plate.length());
-            }
-        }
-
+        if (!TextUtils.equals(uid, p.getString(K_UID, ""))) { restoredOnce = true; return; }
+        int savedVehiclePos = p.getInt(K_VEHICLE_POS, -1);
+        if (savedVehiclePos >= 0 && savedVehiclePos < vehicleAdapter.getItemCount())
+            currentVehicleIndex = savedVehiclePos;
         restoredOnce = true;
     }
 
-    private void applySavedLotSelectionAfterLotsLoaded() {
-        SharedPreferences p = prefs();
-        if (p == null) return;
+    // ═══════════════════════════════════════════════════════
+    // FIREBASE LOAD
+    // ═══════════════════════════════════════════════════════
 
-        String uid = FirebaseAuth.getInstance().getUid();
-        String savedUid = p.getString(K_UID, "");
-        if (!TextUtils.equals(uid, savedUid)) return;
-
-        int savedPos = p.getInt(K_LOT_POS, -1);
-        String savedLotId = p.getString(K_LOT_ID, "");
-
-        int target = -1;
-        if (!TextUtils.isEmpty(savedLotId)) {
-            for (int i = 0; i < lots.size(); i++) {
-                if (savedLotId.equals(lots.get(i).id)) { target = i; break; }
+    private void loadZones() {
+        FirebaseUtils.zonesRef().addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override public void onDataChange(@NonNull DataSnapshot ds) {
+                zones.clear();
+                for (DataSnapshot z : ds.getChildren()) {
+                    String id   = z.getKey();
+                    String name = z.child("name").getValue(String.class);
+                    Double ph   = z.child("perHour").getValue(Double.class);
+                    Double pd   = z.child("perDay").getValue(Double.class);
+                    if (id == null || name == null) continue;
+                    ZoneItem zi = new ZoneItem();
+                    zi.id = id; zi.name = name;
+                    zi.perHour = ph == null ? 0.0 : ph;
+                    zi.perDay  = pd == null ? 0.0 : pd;
+                    zones.add(zi);
+                }
+                buildZoneButtons();
+                applySavedZone();
+                restoreFormState();
+                loadAllActiveSessions();
             }
-        }
-        if (target < 0 && savedPos >= 0 && savedPos < lots.size()) target = savedPos;
-
-        if (target >= 0) setSelectedLotIndex(target);
-        else if (!lots.isEmpty()) setSelectedLotIndex(0);
+            @Override public void onCancelled(@NonNull DatabaseError e) { toast(e.getMessage()); }
+        });
     }
 
-    private void clearSavedFormState() {
-        SharedPreferences p = prefs();
-        if (p == null) return;
-        p.edit()
-                .remove(K_LOT_POS)
-                .remove(K_LOT_ID)
-                .remove(K_SPOT)
-                .remove(K_PLATE)
-                .remove(K_HAS_ACTIVE)
-                .apply();
-    }
-
-    // =========================================================
-    // Vehicles dropdown
-    // =========================================================
-    private void loadUserVehiclesForDropdown() {
+    private void loadUserVehicles() {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) return;
-
         FirebaseUtils.userVehicles(uid).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override public void onDataChange(@NonNull DataSnapshot vehiclesSnap) {
+            @Override public void onDataChange(@NonNull DataSnapshot ds) {
                 List<VehicleDisplay> temp = new ArrayList<>();
-
-                for (DataSnapshot v : vehiclesSnap.getChildren()) {
-                    String nick  = v.child("nickname").getValue(String.class);
-                    String plate = v.child("plate").getValue(String.class);
-
-                    String p = normalizePlate(plate);
-                    if (TextUtils.isEmpty(p)) continue;
-
-                    String n = nick == null ? "" : nick.trim();
-                    String display = !TextUtils.isEmpty(n) ? (n + " - " + p) : p;
-
-                    temp.add(new VehicleDisplay(display, p));
+                for (DataSnapshot veh : ds.getChildren()) {
+                    String nick  = veh.child("nickname").getValue(String.class);
+                    String plate = veh.child("plate").getValue(String.class);
+                    if (TextUtils.isEmpty(plate)) continue;
+                    String pl = plate.toUpperCase(Locale.ROOT).trim();
+                    String n  = TextUtils.isEmpty(nick) ? "" : nick.trim();
+                    temp.add(new VehicleDisplay(TextUtils.isEmpty(n) ? pl : n, pl));
                 }
-
                 Collections.sort(temp, Comparator.comparing(a -> a.display.toLowerCase(Locale.ROOT)));
-
-                displayToPlate.clear();
-                displaySuggestions.clear();
-
-                Set<String> used = new HashSet<>();
-                for (VehicleDisplay it : temp) {
-                    String d = it.display == null ? "" : it.display.trim();
-                    String p = it.plate == null ? "" : it.plate.trim();
-                    if (TextUtils.isEmpty(p)) continue;
-                    if (TextUtils.isEmpty(d)) d = p;
-
-                    if (used.contains(d)) d = d + " (" + p + ")";
-                    used.add(d);
-
-                    displayToPlate.put(d, p);
-                    displaySuggestions.add(d);
-                }
 
                 if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
-                    if (plateAdapter != null) plateAdapter.notifyDataSetChanged();
-                    String cur = etPlate.getText() == null ? "" : etPlate.getText().toString().trim();
-                    if (cur.isEmpty() && etPlate.hasFocus()) showPlateDropdownIfAny();
+                    vehicles.clear();
+                    vehicles.addAll(temp);
+                    if (currentVehicleIndex >= vehicleAdapter.getItemCount()) currentVehicleIndex = 0;
+                    vehicleAdapter.notifyDataSetChanged();
+                    vpVehicles.setCurrentItem(currentVehicleIndex, false);
+                    updateVehicleDots();
                 });
             }
-
-            @Override public void onCancelled(@NonNull DatabaseError error) {
-                Log.w(TAG, "loadUserVehiclesForDropdown cancelled: " + error.getMessage());
-            }
+            @Override public void onCancelled(@NonNull DatabaseError e) {}
         });
     }
 
-    // =========================================================
-    // Balance / lots
-    // =========================================================
-    private void loadBalance() {
+    private void loadAllActiveSessions() {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) return;
-
-        FirebaseUtils.balance(uid).addValueEventListener(new ValueEventListener() {
-            @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
-                Double bal = snapshot.getValue(Double.class);
-                if (tvBalance != null) {
-                    tvBalance.setText(String.format(Locale.getDefault(),
-                            "Balans: %.2f KM", bal == null ? 0.0 : bal));
-                }
-            }
-            @Override public void onCancelled(@NonNull DatabaseError error) { }
-        });
-    }
-
-    private void loadParkingLots() {
-        FirebaseUtils.parkingLotsRef().addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override public void onDataChange(@NonNull DataSnapshot ds) {
-                lots.clear();
-                List<String> names = new ArrayList<>();
-
-                for (DataSnapshot p : ds.getChildren()) {
-                    String id   = p.getKey();
-                    String name = p.child("name").getValue(String.class);
-
-                    Double ph = p.child("pricing").child("perHour").getValue(Double.class);
-                    Double pd = p.child("pricing").child("perDay").getValue(Double.class);
-
-                    if (id == null || name == null) continue;
-                    if (hasInvalidKeyChar(id)) continue;
-
-                    LotItem li = new LotItem();
-                    li.id = id;
-                    li.name = name;
-                    li.perHour = ph == null ? 0.0 : ph;
-                    li.perDay  = pd == null ? 0.0 : pd;
-
-                    lots.add(li);
-                    names.add(name);
-                }
-
-                lotsAdapter.clear();
-                lotsAdapter.addAll(names);
-                lotsAdapter.notifyDataSetChanged();
-
-                applySavedLotSelectionAfterLotsLoaded();
-                tryAutoShowMyActiveSession();
-                restoreFormStateIfNeeded();
-                refreshActiveStatusForCurrentPlate();
-            }
-
-            @Override public void onCancelled(@NonNull DatabaseError error) {
-                toast(error.getMessage());
-            }
-        });
-    }
-
-    // =========================================================
-    // AUTO SHOW ACTIVE SESSION
-    // =========================================================
-    private void tryAutoShowMyActiveSession() {
-        if (!isAdded()) return;
-        if (lots.isEmpty()) return;
-        loadMyActiveSessionAndBind();
-    }
-
-    private void loadMyActiveSessionAndBind() {
-        String uid = FirebaseAuth.getInstance().getUid();
-        if (uid == null) return;
-
         fetchServerNow(serverNow -> {
             Query q = FirebaseUtils.sessionsRef()
-                    .orderByChild("userId")
-                    .equalTo(uid)
-                    .limitToLast(50);
-
+                    .orderByChild("userId").equalTo(uid).limitToLast(50);
             q.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override public void onDataChange(@NonNull DataSnapshot ds) {
-
-                    String bestSessionId = null;
-                    String bestLotId = null;
-                    String bestSpace = null;
-                    String bestPlate = null;
-                    String bestLotName = null;
-
-                    long bestStart = 0L;
-                    long bestEnd = 0L;
-                    double bestAmount = 0.0;
+                    activeSessionsMap.clear();
 
                     for (DataSnapshot s : ds.getChildren()) {
-                        String sid = s.getKey();
-                        if (sid == null) continue;
-
                         String status = safeStr(s.child("status").getValue(String.class)).toUpperCase(Locale.ROOT);
                         if (TextUtils.isEmpty(status)) status = "ACTIVE";
                         if (!"ACTIVE".equals(status)) continue;
 
-                        Long startL = s.child("startTime").getValue(Long.class);
                         Long endL   = s.child("endTime").getValue(Long.class);
-                        Double amtD = s.child("amount").getValue(Double.class);
+                        Long startL = s.child("startTime").getValue(Long.class);
+                        Double amt  = s.child("amount").getValue(Double.class);
+                        String zId  = s.child("zoneId").getValue(String.class);
+                        String pl   = s.child("plate").getValue(String.class);
 
-                        long start = startL == null ? 0L : startL;
-                        long end   = endL == null ? 0L : endL;
-                        double amt = amtD == null ? 0.0 : amtD;
+                        if (pl == null || endL == null) continue;
+                        long end = endL;
+                        if (end <= serverNow + DRIFT_MS) continue;
 
-                        if (end <= (serverNow + DRIFT_MS)) continue;
+                        String plateKey = pl.toUpperCase(Locale.ROOT).trim();
+                        ActiveSession existing = activeSessionsMap.get(plateKey);
+                        if (existing != null && existing.endTime >= end) continue;
 
-                        String lotId = s.child("parkingLotId").getValue(String.class);
-                        String space = s.child("space").getValue(String.class);
-                        String plate = s.child("plate").getValue(String.class);
+                        ActiveSession as = new ActiveSession();
+                        as.sessionId = s.getKey();
+                        as.plate     = plateKey;
+                        as.startTime = startL == null ? 0L : startL;
+                        as.endTime   = end;
+                        as.amount    = amt == null ? 0.0 : amt;
+                        as.zoneName  = "—";
+                        for (ZoneItem zi : zones)
+                            if (zi.id != null && zi.id.equals(zId)) { as.zoneName = zi.name; break; }
 
-                        if (TextUtils.isEmpty(lotId) || TextUtils.isEmpty(space)) continue;
-
-                        if (end > bestEnd) {
-                            bestEnd = end;
-                            bestStart = start;
-                            bestAmount = amt;
-
-                            bestSessionId = sid;
-                            bestLotId = lotId;
-                            bestSpace = space;
-                            bestPlate = normalizePlate(plate);
-
-                            bestLotName = null;
-                            for (LotItem li : lots) {
-                                if (lotId.equals(li.id)) { bestLotName = li.name; break; }
-                            }
-                        }
+                        activeSessionsMap.put(plateKey, as);
                     }
 
-                    if (TextUtils.isEmpty(bestSessionId)) return;
                     if (!isAdded()) return;
-
-                    int target = -1;
-                    for (int i = 0; i < lots.size(); i++) {
-                        if (bestLotId.equals(lots.get(i).id)) { target = i; break; }
-                    }
-                    if (target >= 0) setSelectedLotIndex(target);
-
-                    if (etSpot != null) etSpot.setText(bestSpace);
-                    if (etPlate != null && !TextUtils.isEmpty(bestPlate)) {
-                        etPlate.setText(bestPlate);
-                        etPlate.setSelection(bestPlate.length());
-                    }
-
-                    currentSessionId = bestSessionId;
-                    currentLotId = bestLotId;
-                    currentLotName = TextUtils.isEmpty(bestLotName) ? "—" : bestLotName;
-                    currentSpaceKey = bestSpace;
-                    currentPlate = bestPlate;
-
-                    currentStartTime = bestStart;
-                    currentEndTime = bestEnd;
-                    currentAmount = bestAmount;
-
-                    markHasActive(true);
-                    saveFormState();
-                    startStatusTicker();
+                    requireActivity().runOnUiThread(() -> {
+                        renderActiveSessions();
+                        startTicker();
+                    });
                 }
-
-                @Override public void onCancelled(@NonNull DatabaseError error) {
-                    Log.w(TAG, "loadMyActiveSessionAndBind cancelled: " + error.getMessage());
-                }
+                @Override public void onCancelled(@NonNull DatabaseError e) {}
             });
         });
     }
 
-    // =========================================================
-    // Server time
-    // =========================================================
-    private void fetchServerNow(@NonNull Consumer<Long> onOk) {
-        FirebaseUtils.infoServerTimeOffset().get()
-                .addOnSuccessListener(snap -> {
-                    Long offset = snap.exists() ? snap.getValue(Long.class) : null;
-                    long now = System.currentTimeMillis() + (offset == null ? 0L : offset);
-                    onOk.accept(now);
-                })
-                .addOnFailureListener(e -> onOk.accept(System.currentTimeMillis()));
+    @Override public void onResume() {
+        super.onResume();
+        restoreFormState();
+        loadAllActiveSessions();
     }
 
-    // =========================================================
-    // Confirm dialog
-    // =========================================================
+    @Override public void onPause() {
+        super.onPause();
+        stopTicker();
+    }
+
+    @Override public void onDestroyView() {
+        stopTicker();
+        super.onDestroyView();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // CONFIRM PAY / EXTEND
+    // ═══════════════════════════════════════════════════════
+
     private void showConfirmDialog(@NonNull String type) {
         if (!isAdded()) return;
 
-        int idx = getSelectedLotIndex();
-        LotItem lot = (idx >= 0 && idx < lots.size()) ? lots.get(idx) : null;
+        int idx       = getSelectedZoneIndex();
+        ZoneItem zone = (idx >= 0 && idx < zones.size()) ? zones.get(idx) : null;
+        String  plate = resolvePlate();
+        double amount = zone != null ? calcAmount(type, zone) : 0.0;
 
-        String parkingName = (lot != null && !TextUtils.isEmpty(lot.name)) ? lot.name : "—";
-        String spotStr = etSpot.getText().toString().trim();
-        String plate = resolvePlateFromInput();
+        if (zone != null) {
+            String plateKey = plate.toUpperCase(Locale.ROOT).trim();
+            ActiveSession existing = activeSessionsMap.get(plateKey);
+            if (existing != null) {
+                showExtendDialog(existing, zone, type, amount);
+                return;
+            }
+        }
 
-        double amount = 0.0;
-        if (lot != null) amount = calcAmountByType(type, lot);
+        String vehicleLabel = plate;
+        int vehIdx = currentVehicleIndex;
+        if (vehIdx >= 0 && vehIdx < vehicles.size()) {
+            String disp = vehicles.get(vehIdx).display;
+            if (!TextUtils.isEmpty(disp)) vehicleLabel = disp + " · " + plate;
+        }
 
-        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_confirm_payment, null, false);
+        BottomSheetDialog dlg = new BottomSheetDialog(requireContext());
+        View v = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_confirm_payment, null, false);
+        dlg.setContentView(v);
 
-        ((TextView) dialogView.findViewById(R.id.tvParkingValue)).setText(parkingName);
-        ((TextView) dialogView.findViewById(R.id.tvSpotValue)).setText(spotStr);
-        ((TextView) dialogView.findViewById(R.id.tvPlateValue)).setText(plate);
-        ((TextView) dialogView.findViewById(R.id.tvTypeValue)).setText(typeLabel(type));
-        ((TextView) dialogView.findViewById(R.id.tvAmountValue))
-                .setText(String.format(Locale.getDefault(), "%.2f KM", amount));
+        TextView tvTitle       = v.findViewById(R.id.tvConfirmTitle);
+        TextView tvSubtitle    = v.findViewById(R.id.tvConfirmSubtitle);
+        TextView tvAmount      = v.findViewById(R.id.tvConfirmAmount);
+        TextView tvBreakdown   = v.findViewById(R.id.tvConfirmAmountBreakdown);
+        TextView tvVehicle     = v.findViewById(R.id.tvConfirmVehicle);
+        TextView tvZone        = v.findViewById(R.id.tvConfirmZone);
+        TextView tvType        = v.findViewById(R.id.tvConfirmType);
+        TextView tvSavings     = v.findViewById(R.id.tvSavings);
+        TextView tvBalanceInfo = v.findViewById(R.id.tvBalanceInfo);
+        View     savingsBox    = v.findViewById(R.id.savingsBox);
+        View     insufficient  = v.findViewById(R.id.insufficientBox);
+        android.widget.Button btnConfirm = v.findViewById(R.id.btnConfirm);
+        android.widget.Button btnCancel  = v.findViewById(R.id.btnCancel);
 
-        androidx.appcompat.app.AlertDialog dlg = new MaterialAlertDialogBuilder(requireContext())
-                .setView(dialogView)
-                .setCancelable(true)
-                .create();
+        boolean isDayPass = "day".equals(type);
+        tvTitle.setText(isDayPass ? "Dnevna karta" : "Potvrda plaćanja");
+        tvSubtitle.setText(isDayPass ? "Neograničeno parkiranje 24h" : "Provjerite podatke");
 
-        Button btnCancel  = dialogView.findViewById(R.id.btnCancel);
-        Button btnConfirm = dialogView.findViewById(R.id.btnConfirm);
+        tvAmount.setText(String.format(Locale.getDefault(), "%.2f KM", amount));
+        if (zone != null) {
+            if (isDayPass) {
+                tvBreakdown.setText(String.format(Locale.getDefault(),
+                        "%.2f KM · dnevno neograničeno", amount));
+            } else {
+                int hours = type.equals("1h") ? 1 : 2;
+                tvBreakdown.setText(String.format(Locale.getDefault(),
+                        "%d %s × %.2f KM/sat", hours, hourWord(hours), zone.perHour));
+            }
+        }
 
-        btnCancel.setOnClickListener(v -> dlg.dismiss());
-        btnConfirm.setOnClickListener(v -> { dlg.dismiss(); pay(type); });
+        tvVehicle.setText(TextUtils.isEmpty(vehicleLabel) ? "—" : vehicleLabel);
+        tvZone.setText(zone != null ? zone.name : "—");
+        tvType.setText(typeLabel(type));
+
+        if (isDayPass && zone != null && zone.perHour > 0) {
+            double normal8h = zone.perHour * 8.0;
+            double savings  = normal8h - amount;
+            if (savings > 0) {
+                savingsBox.setVisibility(View.VISIBLE);
+                double percent = (savings / normal8h) * 100.0;
+                tvSavings.setText(String.format(Locale.getDefault(),
+                        "%.2f KM (%.0f%% jeftinije od 8h)", savings, percent));
+            }
+        }
+
+        final double finalAmount = amount;
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid != null) {
+            FirebaseUtils.balance(uid).get().addOnSuccessListener(snap -> {
+                if (!isAdded()) return;
+                Double b = snap.exists() ? snap.getValue(Double.class) : null;
+                double balance = b == null ? 0.0 : b;
+                cachedBalance = balance;
+                tvBalanceInfo.setText(String.format(Locale.getDefault(), "%.2f KM", balance));
+                boolean sufficient = balance >= finalAmount;
+                insufficient.setVisibility(sufficient ? View.GONE : View.VISIBLE);
+                btnConfirm.setEnabled(true);
+                btnConfirm.setAlpha(1f);
+                btnConfirm.setText(sufficient ? "Plati" : "Dopuni kredit");
+            });
+        }
+
+        btnConfirm.setOnClickListener(x -> {
+            dlg.dismiss();
+            if (cachedBalance < finalAmount) showTopupDialog(finalAmount);
+            else pay(type);
+        });
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
 
         dlg.show();
     }
 
-    // =========================================================
-    // PAY FLOW
-    // =========================================================
-    private void pay(@NonNull String type) {
-        if (isPaying) return;
-        isPaying = true;
-        setPayUiEnabled(false);
-        setRefundUiEnabled(false);
-
-        int idx = getSelectedLotIndex();
-        if (idx < 0 || idx >= lots.size()) { failAndUnlock("Odaberite parking."); return; }
-        final LotItem lot = lots.get(idx);
-
-        final String spotStr = etSpot.getText().toString().trim();
-        final int spot;
-        try { spot = Integer.parseInt(spotStr); }
-        catch (Exception e) { failAndUnlock("Neispravan broj mjesta."); return; }
-        if (spot <= 0) { failAndUnlock("Broj mjesta mora biti veći od 0."); return; }
-
-        final String spaceKey = String.valueOf(spot);
-        if (hasInvalidKeyChar(spaceKey)) { failAndUnlock("Neispravan ključ mjesta."); return; }
-
-        final String plate = resolvePlateFromInput();
-        if (TextUtils.isEmpty(plate)) { failAndUnlock("Unesite registarsku oznaku."); return; }
-
-        final FirebaseUser fu = FirebaseAuth.getInstance().getCurrentUser();
-        if (fu == null) { failAndUnlock("Niste prijavljeni."); return; }
-        final String uid = fu.getUid();
-
-        final double amount = calcAmountByType(type, lot);
-        if (amount <= 0) { failAndUnlock("Cijena nije podešena."); return; }
-
-        final DatabaseReference spaceRef = FirebaseUtils.parkingSpace(lot.id, spaceKey);
-
-        fetchServerNow(serverNow -> {
-            spaceRef.get()
-                    .addOnSuccessListener(spaceSnap -> {
-
-                        String status = getLower(spaceSnap.child("status").getValue(String.class));
-                        String reservedBy = safeStr(spaceSnap.child("reservedBy").getValue(String.class));
-
-                        Long untilL = spaceSnap.child("until").getValue(Long.class);
-                        long until = untilL == null ? 0L : untilL;
-
-                        String plateOnSpot = normalizePlate(spaceSnap.child("plate").getValue(String.class));
-
-                        boolean occupied = "zauzeto".equals(status);
-                        boolean activeOther = occupied && until > (serverNow + DRIFT_MS) && !uid.equals(reservedBy);
-
-                        if (activeOther) {
-                            showTakeoverDialogs(type, lot, uid, spaceKey, plate, plateOnSpot);
-                            isPaying = false;
-                            setPayUiEnabled(true);
-                            setRefundUiEnabled(true);
-                            return;
-                        }
-
-                        proceedNormalReserveAndPay(type, lot, uid, spaceKey, plate, amount, serverNow);
-
-                    })
-                    .addOnFailureListener(e -> failAndUnlock(mapFirebaseError(e)));
-        });
+    private static String hourWord(int hours) {
+        if (hours == 1) return "sat";
+        if (hours >= 2 && hours <= 4) return "sata";
+        return "sati";
     }
 
-    private void showTakeoverDialogs(@NonNull String type,
-                                     @NonNull LotItem lot,
-                                     @NonNull String uid,
-                                     @NonNull String spaceKey,
-                                     @NonNull String userInputPlate,
-                                     @Nullable String plateFromDb) {
+    // ═══════════════════════════════════════════════════════
+    // TOPUP DIALOG
+    // ═══════════════════════════════════════════════════════
+
+    private void showTopupDialog(double needForAmount) {
+        if (!isAdded()) return;
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) { openAddCardScreen(); return; }
+
+        FirebaseUtils.user(uid).child("paymentCard").get().addOnSuccessListener(snap -> {
+            if (!isAdded()) return;
+            boolean hasCard = snap.exists() && snap.child("number").exists();
+            if (!hasCard) { openAddCardScreen(); return; }
+            String cardNumber = snap.child("number").getValue(String.class);
+            showTopupAmountDialog(needForAmount, cardNumber);
+        }).addOnFailureListener(e -> { if (isAdded()) openAddCardScreen(); });
+    }
+
+    private void showTopupAmountDialog(double needForAmount, @Nullable String cardNumber) {
         if (!isAdded()) return;
 
-        final String plateDb = TextUtils.isEmpty(plateFromDb) ? "—" : plateFromDb;
+        BottomSheetDialog dlg = new BottomSheetDialog(requireContext());
+        View v = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_topup_quick, null, false);
+        dlg.setContentView(v);
 
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Provjera parking mjesta")
-                .setMessage("Da li je na ovom mjestu još uvijek parkirano vozilo:\n\n" + plateDb + " ?")
-                .setCancelable(true)
-                .setPositiveButton("DA", (d, w) -> {
-                    d.dismiss();
-                    new MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("Uredu")
-                            .setMessage("Uredu, unesite ponovo podatke.")
-                            .setPositiveButton("OK", (d2, w2) -> d2.dismiss())
-                            .show();
-                })
-                .setNegativeButton("NE", (d, w) -> {
-                    d.dismiss();
-                    new MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("Upozorenje")
-                            .setMessage("Ukoliko zloupotrijebite sistem, snosit ćete krivičnu i materijalnu odgovornost.\n\n" +
-                                    "Da li ste sigurni da vozilo:\n" + plateDb + "\n\nnije više na trenutnom mjestu?")
-                            .setCancelable(true)
-                            .setPositiveButton("DA", (d2, w2) -> {
-                                d2.dismiss();
-                                forceTakeoverAndPay(type, lot, uid, spaceKey, userInputPlate);
-                            })
-                            .setNegativeButton("NE", (d2, w2) -> d2.dismiss())
-                            .show();
-                })
-                .show();
+        TextView tvSubtitle    = v.findViewById(R.id.tvTopupSubtitle);
+        TextView tvBal         = v.findViewById(R.id.tvTopupBalance);
+        TextView tvCardMasked  = v.findViewById(R.id.tvCardMasked);
+        View llCardInfo        = v.findViewById(R.id.llCardInfo);
+        View llNoCardWarning   = v.findViewById(R.id.llNoCardWarning);
+
+        AppCompatButton btn5   = v.findViewById(R.id.btnTopup5);
+        AppCompatButton btn10  = v.findViewById(R.id.btnTopup10);
+        AppCompatButton btn20  = v.findViewById(R.id.btnTopup20);
+        AppCompatButton btn50  = v.findViewById(R.id.btnTopup50);
+        AppCompatButton btnPrimary = v.findViewById(R.id.btnTopupPrimary);
+        AppCompatButton btnCancel  = v.findViewById(R.id.btnTopupCancel);
+
+        tvBal.setText(String.format(Locale.getDefault(), "%.2f KM", cachedBalance));
+
+        llCardInfo.setVisibility(View.VISIBLE);
+        llNoCardWarning.setVisibility(View.GONE);
+        if (cardNumber != null && cardNumber.length() >= 4)
+            tvCardMasked.setText("•••• " + cardNumber.substring(cardNumber.length() - 4));
+        else tvCardMasked.setText("•••• ••••");
+        btnPrimary.setText("Dopuni sa kartice");
+
+        double[] presets = {5, 10, 20, 50};
+        AppCompatButton[] btns = {btn5, btn10, btn20, btn50};
+        final double[] selected = {10.0};
+
+        if (needForAmount > 0) {
+            double missing = needForAmount - cachedBalance;
+            if (missing < 0) missing = 0;
+            selected[0] = 10.0;
+            for (double p : presets) {
+                if (p >= missing) { selected[0] = p; break; }
+                if (p == presets[presets.length - 1]) selected[0] = p;
+            }
+            tvSubtitle.setText(String.format(Locale.getDefault(),
+                    "Potrebno vam je %.2f KM više", missing));
+        }
+
+        Runnable syncPresets = () -> {
+            for (int i = 0; i < presets.length; i++) {
+                boolean active = presets[i] == selected[0];
+                btns[i].setBackgroundResource(active
+                        ? R.drawable.bg_btn_active_primary
+                        : R.drawable.bg_btn_inactive_white);
+                btns[i].setTextColor(ContextCompat.getColor(requireContext(),
+                        active ? R.color.white : R.color.foreground));
+            }
+        };
+        syncPresets.run();
+
+        for (int i = 0; i < presets.length; i++) {
+            final double val = presets[i];
+            btns[i].setOnClickListener(x -> { selected[0] = val; syncPresets.run(); });
+        }
+
+        btnPrimary.setOnClickListener(x -> {
+            dlg.dismiss();
+            showConfirmTopupDialog(selected[0], cardNumber);
+        });
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
     }
 
-    // ----------------- NORMAL RESERVE + PAY -----------------
-    private void proceedNormalReserveAndPay(@NonNull String type,
-                                            @NonNull LotItem lot,
-                                            @NonNull String uid,
-                                            @NonNull String spaceKey,
-                                            @NonNull String plate,
-                                            double amount,
-                                            long serverNow) {
+    private void showConfirmTopupDialog(double amount, @Nullable String cardNumber) {
+        if (!isAdded()) return;
 
-        final long duration = durationByType(type);
-        final DatabaseReference spaceRef = FirebaseUtils.parkingSpace(lot.id, spaceKey);
+        BottomSheetDialog dlg = new BottomSheetDialog(requireContext());
+        View v = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_confirm_topup, null, false);
+        dlg.setContentView(v);
 
-        final String sessionId = FirebaseUtils.sessionsRef().push().getKey();
-        if (sessionId == null) { failAndUnlock("Greška: sessionId"); return; }
+        TextView tvAmount     = v.findViewById(R.id.tvConfirmTopupAmount);
+        TextView tvCard       = v.findViewById(R.id.tvConfirmTopupCard);
+        TextView tvBalance    = v.findViewById(R.id.tvConfirmTopupBalance);
+        TextView tvNewBalance = v.findViewById(R.id.tvConfirmTopupNewBalance);
 
-        spaceRef.runTransaction(new Transaction.Handler() {
+        AppCompatButton btnYes = v.findViewById(R.id.btnConfirmTopupYes);
+        AppCompatButton btnNo  = v.findViewById(R.id.btnConfirmTopupNo);
+
+        tvAmount.setText(String.format(Locale.getDefault(), "%.2f KM", amount));
+        tvBalance.setText(String.format(Locale.getDefault(), "%.2f KM", cachedBalance));
+        tvNewBalance.setText(String.format(Locale.getDefault(), "%.2f KM", cachedBalance + amount));
+
+        if (cardNumber != null && cardNumber.length() >= 4)
+            tvCard.setText("•••• " + cardNumber.substring(cardNumber.length() - 4));
+        else tvCard.setText("•••• ••••");
+
+        btnYes.setOnClickListener(x -> { dlg.dismiss(); executeTopup(amount); });
+        btnNo.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
+    }
+
+    private void executeTopup(double amount) {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) { toast("Niste prijavljeni."); return; }
+
+        FirebaseUtils.balance(uid).runTransaction(new Transaction.Handler() {
             @NonNull @Override
             public Transaction.Result doTransaction(@NonNull MutableData cur) {
-
-                String status = getLower(cur.child("status").getValue(String.class));
-                String reservedBy = safeStr(cur.child("reservedBy").getValue(String.class));
-
-                Long untilL = cur.child("until").getValue(Long.class);
-                long until = untilL == null ? 0L : untilL;
-
-                boolean occupied = "zauzeto".equals(status);
-                boolean expired = occupied && untilL != null && until <= (serverNow + DRIFT_MS);
-                boolean noStatus = TextUtils.isEmpty(status);
-
-                if (!occupied || expired || noStatus) {
-                    cur.child("status").setValue("zauzeto");
-                    cur.child("reservedBy").setValue(uid);
-                    cur.child("until").setValue(serverNow + duration);
-                    cur.child("plate").setValue(plate);
-                    cur.child("sessionId").setValue(sessionId);
-
-                    cur.child("takeover").setValue(null);
-                    cur.child("takeoverAt").setValue(null);
-
-                    cur.child("updatedAt").setValue(serverNow);
-                    return Transaction.success(cur);
-                }
-
-                if (uid.equals(reservedBy)) {
-                    long base = Math.max(serverNow, until);
-                    cur.child("status").setValue("zauzeto");
-                    cur.child("reservedBy").setValue(uid);
-                    cur.child("until").setValue(base + duration);
-                    cur.child("plate").setValue(plate);
-                    cur.child("sessionId").setValue(sessionId);
-
-                    cur.child("takeover").setValue(null);
-                    cur.child("takeoverAt").setValue(null);
-
-                    cur.child("updatedAt").setValue(serverNow);
-                    return Transaction.success(cur);
-                }
-
-                return Transaction.abort();
+                Double bal = cur.getValue(Double.class);
+                if (bal == null) bal = 0.0;
+                cur.setValue(bal + amount);
+                return Transaction.success(cur);
             }
-
-            @Override
-            public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot after) {
-                if (error != null) { failAndUnlock("Greška rezervacije: " + error.getMessage()); return; }
-                if (!committed || after == null) { failAndUnlock("Mjesto je trenutno zauzeto."); return; }
-
-                Long endL = after.child("until").getValue(Long.class);
-                long endTime = (endL == null ? serverNow + duration : endL);
-
-                chargeAndWriteSession(uid, lot.id, spaceKey, serverNow, endTime, amount, type, plate, sessionId,
-                        () -> {
-                            markHasActive(true);
-                            saveFormState();
-                            refreshActiveStatusForCurrentPlate();
-                            doneAndUnlock();
-                        },
-                        msg -> rollbackSpaceIfMyLock(spaceRef, uid, sessionId, () -> failAndUnlock(msg)));
+            @Override public void onComplete(@Nullable DatabaseError error, boolean committed,
+                                             @Nullable DataSnapshot snapshot) {
+                if (error != null) { toast("Greška: " + error.getMessage()); return; }
+                if (committed) toast(String.format(Locale.getDefault(),
+                        "Uspješno dopunjeno %.2f KM ✓", amount));
             }
         });
     }
 
-    // ----------------- TAKEOVER + PAY -----------------
-    private void forceTakeoverAndPay(@NonNull String type,
-                                     @NonNull LotItem lot,
-                                     @NonNull String uid,
-                                     @NonNull String spaceKey,
-                                     @NonNull String plate) {
+    private void openAddCardScreen() {
+        if (!isAdded()) return;
+        try {
+            Intent i = new Intent(requireContext(),
+                    com.example.smartparking.ui.user.userSettings.TopUpActivity.class);
+            startActivity(i);
+        } catch (Exception e) {
+            toast("Ne mogu otvoriti TopUp ekran: " + e.getMessage());
+        }
+    }
 
+    // ═══════════════════════════════════════════════════════
+    // EXTEND SESSION — vrijeme se DODAJE na postojeći kraj
+    // ═══════════════════════════════════════════════════════
+
+    private void showExtendDialog(@NonNull ActiveSession existing, @NonNull ZoneItem zone,
+                                  @NonNull String type, double amount) {
+        if (!isAdded()) return;
+
+        BottomSheetDialog dlg = new BottomSheetDialog(requireContext());
+        View v = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_confirm_extend_session, null, false);
+        dlg.setContentView(v);
+
+        TextView tvSubtitle   = v.findViewById(R.id.tvExtendSubtitle);
+        TextView tvAmount     = v.findViewById(R.id.tvExtendAmount);
+        TextView tvPlate      = v.findViewById(R.id.tvExtendPlate);
+        TextView tvDuration   = v.findViewById(R.id.tvExtendDuration);
+        TextView tvCurrentEnd = v.findViewById(R.id.tvExtendCurrentEnd);
+        TextView tvNewEnd     = v.findViewById(R.id.tvExtendNewEnd);
+        TextView tvBalance    = v.findViewById(R.id.tvExtendBalance);
+        View insufficientBox  = v.findViewById(R.id.extendInsufficientBox);
+        AppCompatButton btnConfirm = v.findViewById(R.id.btnConfirmExtend);
+        AppCompatButton btnCancel  = v.findViewById(R.id.btnCancelExtend);
+
+        long extendMs = durationMs(type);
+        long newEnd   = existing.endTime + extendMs;   // ← DODAJE se na postojeći kraj
+
+        tvSubtitle.setText("Vrijeme će biti dodano postojećoj sesiji");
+        tvAmount.setText(String.format(Locale.getDefault(), "%.2f KM", amount));
+        tvPlate.setText(existing.plate);
+        tvDuration.setText(typeLabel(type));
+
+        java.text.SimpleDateFormat sdf =
+                new java.text.SimpleDateFormat("dd.MM. HH:mm", Locale.getDefault());
+        tvCurrentEnd.setText(sdf.format(new java.util.Date(existing.endTime)));
+        tvNewEnd.setText(sdf.format(new java.util.Date(newEnd)));
+
+        final double finalAmount = amount;
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid != null) {
+            FirebaseUtils.balance(uid).get().addOnSuccessListener(snap -> {
+                if (!isAdded()) return;
+                Double b = snap.exists() ? snap.getValue(Double.class) : null;
+                double balance = b == null ? 0.0 : b;
+                cachedBalance = balance;
+                tvBalance.setText(String.format(Locale.getDefault(), "%.2f KM", balance));
+                boolean sufficient = balance >= finalAmount;
+                insufficientBox.setVisibility(sufficient ? View.GONE : View.VISIBLE);
+                btnConfirm.setEnabled(true);
+                btnConfirm.setAlpha(1f);
+                btnConfirm.setText(sufficient ? "⚡ Produži sesiju" : "Dopuni kredit");
+            });
+        }
+
+        btnConfirm.setOnClickListener(x -> {
+            dlg.dismiss();
+            if (cachedBalance < finalAmount) showTopupDialog(finalAmount);
+            else executeExtend(existing, zone, type, finalAmount, extendMs);
+        });
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
+    }
+
+    private void executeExtend(@NonNull ActiveSession existing, @NonNull ZoneItem zone,
+                               @NonNull String type, double amount, long extendMs) {
         if (isPaying) return;
         isPaying = true;
-        setPayUiEnabled(false);
-        setRefundUiEnabled(false);
+        setPayEnabled(false);
 
-        final long duration = durationByType(type);
-        final double amount = calcAmountByType(type, lot);
-        final DatabaseReference spaceRef = FirebaseUtils.parkingSpace(lot.id, spaceKey);
-
-        final String newSessionId = FirebaseUtils.sessionsRef().push().getKey();
-        if (newSessionId == null) { failAndUnlock("Greška: sessionId"); return; }
-
-        final int[] retriesLeft = { MAX_TAKEOVER_RETRY };
-        final Runnable[] runner = new Runnable[1];
-
-        runner[0] = () -> fetchServerNow(serverNow -> {
-
-            spaceRef.get().addOnSuccessListener(snap -> {
-
-                String status = getLower(snap.child("status").getValue(String.class));
-                String reservedBy = safeStr(snap.child("reservedBy").getValue(String.class));
-                Long untilL = snap.child("until").getValue(Long.class);
-                long until = untilL == null ? 0L : untilL;
-
-                boolean occupied = "zauzeto".equals(status);
-                boolean activeOther = occupied
-                        && until > (serverNow + DRIFT_MS)
-                        && !TextUtils.isEmpty(reservedBy)
-                        && !uid.equals(reservedBy);
-
-                if (!activeOther) {
-                    proceedNormalReserveAndPay(type, lot, uid, spaceKey, plate, amount, serverNow);
-                    return;
-                }
-
-                spaceRef.runTransaction(new Transaction.Handler() {
-                    @NonNull @Override
-                    public Transaction.Result doTransaction(@NonNull MutableData cur) {
-                        String st = getLower(cur.child("status").getValue(String.class));
-                        String oldReservedBy = safeStr(cur.child("reservedBy").getValue(String.class));
-
-                        Long untilTxL = cur.child("until").getValue(Long.class);
-                        long untilTx = untilTxL == null ? 0L : untilTxL;
-
-                        boolean occ = "zauzeto".equals(st);
-                        boolean active = occ && untilTx > (serverNow + DRIFT_MS);
-
-                        if (!(occ && active)) return Transaction.abort();
-                        if (TextUtils.isEmpty(oldReservedBy) || uid.equals(oldReservedBy)) return Transaction.abort();
-
-                        cur.child("takeover").setValue(true);
-                        cur.child("takeoverAt").setValue(serverNow);
-
-                        cur.child("status").setValue("zauzeto");
-                        cur.child("reservedBy").setValue(uid);
-                        cur.child("until").setValue(serverNow + duration);
-                        cur.child("plate").setValue(plate);
-                        cur.child("sessionId").setValue(newSessionId);
-                        cur.child("updatedAt").setValue(serverNow);
-
-                        return Transaction.success(cur);
-                    }
-
-                    @Override
-                    public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot after) {
-                        if (error != null) { failAndUnlock("Greška takeover-a: " + error.getMessage()); return; }
-
-                        if (!committed) {
-                            if (retriesLeft[0] > 0) {
-                                retriesLeft[0]--;
-                                if (tvStatus != null) tvStatus.postDelayed(runner[0], 150);
-                                else runner[0].run();
-                                return;
-                            }
-                            failAndUnlock("Takeover nije moguć (mjesto se promijenilo).");
-                            return;
-                        }
-
-                        long endTime = serverNow + duration;
-
-                        chargeAndWriteSession(uid, lot.id, spaceKey, serverNow, endTime, amount, type, plate, newSessionId,
-                                () -> {
-                                    markHasActive(true);
-                                    saveFormState();
-                                    refreshActiveStatusForCurrentPlate();
-                                    doneAndUnlock();
-                                },
-                                msg -> rollbackSpaceIfMyLock(spaceRef, uid, newSessionId, () -> failAndUnlock(msg)));
-                    }
-                });
-
-            }).addOnFailureListener(e -> failAndUnlock(mapFirebaseError(e)));
-
-        });
-
-        runner[0].run();
-    }
-
-    // ----------------- Write session + charge -----------------
-    private void chargeAndWriteSession(@NonNull String uid,
-                                       @NonNull String lotId,
-                                       @NonNull String spaceKey,
-                                       long startTime,
-                                       long endTime,
-                                       double amount,
-                                       @NonNull String type,
-                                       @NonNull String plate,
-                                       @NonNull String sessionId,
-                                       @NonNull Runnable onSuccess,
-                                       @NonNull Consumer<String> onFail) {
+        final FirebaseUser fu = FirebaseAuth.getInstance().getCurrentUser();
+        if (fu == null) { failUnlock("Niste prijavljeni."); return; }
+        final String uid = fu.getUid();
+        final long newEnd = existing.endTime + extendMs;   // ← akumulira preko 24h
 
         FirebaseUtils.balance(uid).runTransaction(new Transaction.Handler() {
             @NonNull @Override
@@ -1024,503 +1022,399 @@ public class UserPayFragment extends Fragment {
                 cur.setValue(bal - amount);
                 return Transaction.success(cur);
             }
+            @Override public void onComplete(@Nullable DatabaseError error, boolean committed,
+                                             @Nullable DataSnapshot snapshot) {
+                if (error != null) { failUnlock("Greška naplate: " + error.getMessage()); return; }
+                if (!committed)    { failUnlock("Nedovoljan balans."); return; }
 
-            @Override
-            public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot dataSnapshot) {
-                if (error != null) { onFail.accept("Greška naplate: " + error.getMessage()); return; }
-                if (!committed) { onFail.accept("Nedovoljan balans."); return; }
+                Map<String, Object> upd = new HashMap<>();
+                upd.put("endTime", newEnd);
+                upd.put("amount",  existing.amount + amount);
 
-                Map<String, Object> sess = new HashMap<>();
-                sess.put("userId", uid);
-                sess.put("parkingLotId", lotId);
-                sess.put("space", spaceKey);
-                sess.put("startTime", startTime);
-                sess.put("endTime", endTime);
-                sess.put("amount", amount);
-                sess.put("type", type);
-                sess.put("plate", plate);
-                sess.put("status", "ACTIVE");
-
-                FirebaseUtils.session(sessionId).setValue(sess)
-                        .addOnSuccessListener(v -> onSuccess.run())
-                        .addOnFailureListener(e -> onFail.accept(mapFirebaseError(e)));
+                FirebaseUtils.session(existing.sessionId).updateChildren(upd)
+                        .addOnSuccessListener(v2 -> {
+                            existing.endTime = newEnd;
+                            existing.amount += amount;
+                            activeSessionsMap.put(existing.plate, existing);
+                            isPaying = false;
+                            setPayEnabled(true);
+                            toast("Sesija produžena ✓");
+                            if (isAdded()) requireActivity().runOnUiThread(() -> {
+                                renderActiveSessions();
+                                startTicker();
+                            });
+                        })
+                        .addOnFailureListener(e -> failUnlock("Greška produženja: " + e.getMessage()));
             }
         });
     }
 
-    // ----------------- Rollback space only if my lock -----------------
-    private void rollbackSpaceIfMyLock(@NonNull DatabaseReference spaceRef,
-                                       @NonNull String uid,
-                                       @NonNull String sessionId,
-                                       @NonNull Runnable after) {
+    // ═══════════════════════════════════════════════════════
+    // QUICK ADD VEHICLE
+    // ═══════════════════════════════════════════════════════
 
-        spaceRef.runTransaction(new Transaction.Handler() {
-            @NonNull @Override
-            public Transaction.Result doTransaction(@NonNull MutableData cur) {
-                String rb = safeStr(cur.child("reservedBy").getValue(String.class));
-                String sid = safeStr(cur.child("sessionId").getValue(String.class));
-
-                if (uid.equals(rb) && sessionId.equals(sid)) {
-                    cur.child("status").setValue("slobodno");
-                    cur.child("reservedBy").setValue(null);
-                    cur.child("until").setValue(null);
-                    cur.child("plate").setValue(null);
-                    cur.child("sessionId").setValue(null);
-
-                    cur.child("takeover").setValue(null);
-                    cur.child("takeoverAt").setValue(null);
-
-                    cur.child("updatedAt").setValue(System.currentTimeMillis());
-                }
-                return Transaction.success(cur);
-            }
-
-            @Override public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot currentData) {
-                after.run();
-            }
-        });
-    }
-
-    // =========================================================
-    // STATUS (tajmer)
-    // =========================================================
-    private void refreshActiveStatusForCurrentPlate() {
-        String uid = FirebaseAuth.getInstance().getUid();
-        if (uid == null) { stopStatusTicker(true); return; }
-
-        int idx = getSelectedLotIndex();
-        if (idx < 0 || idx >= lots.size()) { stopStatusTicker(false); return; }
-
-        String spotStr = etSpot.getText().toString().trim();
-        if (TextUtils.isEmpty(spotStr)) { stopStatusTicker(false); return; }
-
-        int spot;
-        try { spot = Integer.parseInt(spotStr); }
-        catch (Exception e) { stopStatusTicker(false); return; }
-
-        final String spaceKey = String.valueOf(spot);
-        final LotItem lot = lots.get(idx);
-        final DatabaseReference spaceRef = FirebaseUtils.parkingSpace(lot.id, spaceKey);
-
-        fetchServerNow(serverNow -> {
-            spaceRef.get().addOnSuccessListener(snap -> {
-                if (!snap.exists()) { stopStatusTicker(false); return; }
-
-                String status = getLower(snap.child("status").getValue(String.class));
-                String reservedBy = safeStr(snap.child("reservedBy").getValue(String.class));
-
-                Long untilL = snap.child("until").getValue(Long.class);
-                long until = untilL == null ? 0L : untilL;
-
-                boolean mineActive = "zauzeto".equals(status)
-                        && uid.equals(reservedBy)
-                        && until > (serverNow + DRIFT_MS);
-
-                if (!mineActive) {
-                    boolean expiredMine =
-                            "zauzeto".equals(status)
-                                    && uid.equals(reservedBy)
-                                    && until > 0
-                                    && until <= (serverNow + DRIFT_MS);
-
-                    stopStatusTicker(expiredMine);
-                    return;
-                }
-
-                String sessionId = snap.child("sessionId").getValue(String.class);
-                String plateOnSpot = snap.child("plate").getValue(String.class);
-
-                currentSessionId = sessionId;
-                currentLotId = lot.id;
-                currentLotName = lot.name;
-                currentSpaceKey = spaceKey;
-                currentPlate = plateOnSpot;
-                currentEndTime = until;
-
-                markHasActive(true);
-                saveFormState();
-
-                if (!TextUtils.isEmpty(sessionId)) {
-                    FirebaseUtils.session(sessionId).get().addOnSuccessListener(ses -> {
-                        Long st = ses.child("startTime").getValue(Long.class);
-                        Double amt = ses.child("amount").getValue(Double.class);
-                        currentStartTime = st == null ? 0L : st;
-                        currentAmount = amt == null ? 0.0 : amt;
-                        startStatusTicker();
-                    }).addOnFailureListener(e -> {
-                        currentStartTime = 0L;
-                        currentAmount = 0.0;
-                        startStatusTicker();
-                    });
-                } else {
-                    currentStartTime = 0L;
-                    currentAmount = 0.0;
-                    startStatusTicker();
-                }
-
-            }).addOnFailureListener(e -> stopStatusTicker(false));
-        });
-    }
-
-    private void startStatusTicker() {
-        if (tvStatus == null) return;
+    private void showQuickAddVehicleDialog() {
         if (!isAdded()) return;
 
-        if (cardStatus != null) cardStatus.setVisibility(View.VISIBLE);
-        updateRefundButtonVisibility();
+        BottomSheetDialog dlg = new BottomSheetDialog(requireContext());
+        View v = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_add_vehicle_quick, null, false);
+        dlg.setContentView(v);
 
-        if (statusTick == null) {
-            statusTick = new Runnable() {
-                @Override public void run() {
-                    if (!isAdded() || tvStatus == null) return;
+        EditText etPlate    = v.findViewById(R.id.etQuickPlate);
+        EditText etNickname = v.findViewById(R.id.etQuickNickname);
+        AppCompatButton btnSave   = v.findViewById(R.id.btnQuickSave);
+        AppCompatButton btnCancel = v.findViewById(R.id.btnQuickCancel);
 
-                    long now = System.currentTimeMillis();
-                    if (currentEndTime > now) {
-                        long remain = currentEndTime - now;
-                        long min = remain / 60000;
-                        long sec = (remain / 1000) % 60;
+        btnSave.setOnClickListener(x -> {
+            String plate = etPlate.getText() == null ? "" : etPlate.getText().toString().trim().toUpperCase(Locale.ROOT);
+            String nick  = etNickname.getText() == null ? "" : etNickname.getText().toString().trim();
 
-                        String lot = TextUtils.isEmpty(currentLotName) ? "—" : currentLotName;
-                        String space = TextUtils.isEmpty(currentSpaceKey) ? "—" : currentSpaceKey;
+            if (TextUtils.isEmpty(plate)) { toast("Registarske oznake su obavezne."); return; }
 
-                        tvStatus.setText(String.format(Locale.getDefault(),
-                                "Uplata aktivna • Parking: %s • Mjesto: %s • preostalo: %dm %02ds",
-                                lot, space, min, sec));
+            String uid = FirebaseAuth.getInstance().getUid();
+            if (uid == null) { toast("Niste prijavljeni."); return; }
 
-                        saveFormState();
-                        updateRefundButtonVisibility();
+            for (VehicleDisplay vd : vehicles)
+                if (vd.plate.equalsIgnoreCase(plate)) { toast("Vozilo sa ovim tablicama već postoji."); return; }
 
-                        tvStatus.removeCallbacks(this);
-                        tvStatus.postDelayed(this, TICK_MS);
-                    } else {
-                        stopStatusTicker(true);
-                    }
-                }
-            };
-        }
+            String vehId = FirebaseUtils.userVehicles(uid).push().getKey();
+            if (vehId == null) { toast("Greška generisanja ID-a."); return; }
 
-        tvStatus.removeCallbacks(statusTick);
-        tvStatus.post(statusTick);
+            Map<String, Object> data = new HashMap<>();
+            data.put("plate", plate);
+            if (!TextUtils.isEmpty(nick)) data.put("nickname", nick);
+
+            FirebaseUtils.userVehicles(uid).child(vehId).setValue(data)
+                    .addOnSuccessListener(r -> {
+                        toast("Vozilo sačuvano ✓");
+                        dlg.dismiss();
+                        currentVehicleIndex = 0;
+                        loadUserVehicles();
+                    })
+                    .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
+        });
+
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+        dlg.show();
     }
 
-    private void updateRefundButtonVisibility() {
-        if (btnRefund == null) return;
-        boolean has = !TextUtils.isEmpty(currentSessionId);
-        boolean active = currentEndTime > System.currentTimeMillis();
-        btnRefund.setVisibility((has && active) ? View.VISIBLE : View.GONE);
-    }
+    // ═══════════════════════════════════════════════════════
+    // PAY
+    // ═══════════════════════════════════════════════════════
 
-    private void stopStatusTicker(boolean clearFormIfExpired) {
-        if (tvStatus != null && statusTick != null) {
-            tvStatus.removeCallbacks(statusTick);
-        }
+    private void pay(@NonNull String type) {
+        if (isPaying) return;
+        isPaying = true;
+        setPayEnabled(false);
 
-        currentSessionId = null;
-        currentLotId = null;
-        currentLotName = null;
-        currentSpaceKey = null;
-        currentPlate = null;
+        int idx = getSelectedZoneIndex();
+        if (idx < 0 || idx >= zones.size()) { failUnlock("Odaberite zonu."); return; }
+        final ZoneItem zone = zones.get(idx);
 
-        currentStartTime = 0L;
-        currentEndTime = 0L;
-        currentAmount = 0.0;
+        final String plate = resolvePlate();
+        if (TextUtils.isEmpty(plate)) { failUnlock("Odaberite ili dodajte vozilo."); return; }
 
-        if (tvStatus != null) tvStatus.setText("");
-        if (cardStatus != null) cardStatus.setVisibility(View.GONE);
-        if (btnRefund != null) btnRefund.setVisibility(View.GONE);
+        final FirebaseUser fu = FirebaseAuth.getInstance().getCurrentUser();
+        if (fu == null) { failUnlock("Niste prijavljeni."); return; }
+        final String uid = fu.getUid();
 
-        markHasActive(false);
+        final double amount = calcAmount(type, zone);
+        if (amount <= 0) { failUnlock("Cijena nije podešena za ovu zonu."); return; }
 
-        if (clearFormIfExpired) {
-            clearSavedFormState();
-        }
-    }
+        final String sessionId = FirebaseUtils.sessionsRef().push().getKey();
+        if (sessionId == null) { failUnlock("Greška generisanja sesije."); return; }
 
-    private void markHasActive(boolean v) {
-        SharedPreferences p = prefs();
-        if (p == null) return;
-        p.edit().putBoolean(K_HAS_ACTIVE, v).apply();
-    }
-
-    // =========================================================
-    // REFUND
-    // =========================================================
-    private void showRefundDialog() {
-        if (!isAdded()) return;
-
-        if (TextUtils.isEmpty(currentSessionId) || currentEndTime <= System.currentTimeMillis()) {
-            toast("Nema aktivne uplate za refund.");
+        String plateKey = plate.toUpperCase(Locale.ROOT).trim();
+        ActiveSession existing = activeSessionsMap.get(plateKey);
+        if (existing != null) {
+            isPaying = false;
+            setPayEnabled(true);
+            showExtendDialog(existing, zone, type, amount);
             return;
         }
 
-        long now = System.currentTimeMillis();
-        long totalMs = Math.max(1L, (currentEndTime - currentStartTime));
-        long remainingMs = Math.max(0L, (currentEndTime - now));
-        double preview = round2(currentAmount * (remainingMs / (double) totalMs));
-
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Refund parkinga")
-                .setMessage(String.format(Locale.getDefault(),
-                        "Želite prekinuti parking i vratiti preostalo na balans?\n\nProcijenjeni refund: %.2f KM",
-                        preview))
-                .setNegativeButton("Odustani", (d, w) -> d.dismiss())
-                .setPositiveButton("Refund", (d, w) -> refundCurrentSession())
-                .show();
+        executePay(uid, zone, plate, amount, sessionId, type);
     }
 
-    private void refundCurrentSession() {
-        if (isRefunding) return;
-        isRefunding = true;
-        setRefundUiEnabled(false);
-
-        FirebaseUser fu = FirebaseAuth.getInstance().getCurrentUser();
-        if (fu == null) { finishRefundFail("Niste prijavljeni."); return; }
-        String uid = fu.getUid();
-
-        final String sessionId = currentSessionId;
-        if (TextUtils.isEmpty(sessionId)) { finishRefundFail("Session nije pronađen."); return; }
-
+    private void executePay(String uid, ZoneItem zone, String plate,
+                            double amount, String sessionId, String type) {
         fetchServerNow(serverNow -> {
-            DatabaseReference sesRef = FirebaseUtils.session(sessionId);
+            final long startTime = serverNow;
+            final long endTime   = serverNow + durationMs(type);
 
-            sesRef.get().addOnSuccessListener(snap -> {
-                if (!snap.exists()) { finishRefundFail("Session ne postoji."); return; }
+            final String plateNorm = normalizePlateStd(plate);
 
-                String userId = snap.child("userId").getValue(String.class);
-                if (!uid.equals(userId)) { finishRefundFail("Nemate pravo na ovaj refund."); return; }
+            // Atomic balance deduction — abort if insufficient funds
+            FirebaseUtils.balance(uid).runTransaction(new Transaction.Handler() {
+                @NonNull @Override
+                public Transaction.Result doTransaction(@NonNull MutableData cur) {
+                    Double bal = cur.getValue(Double.class);
+                    if (bal == null) bal = 0.0;
+                    if (bal < amount) return Transaction.abort();
+                    cur.setValue(bal - amount);
+                    return Transaction.success(cur);
+                }
+                @Override public void onComplete(@Nullable DatabaseError error, boolean committed,
+                                                 @Nullable DataSnapshot snapshot) {
+                    if (error != null) { failUnlock("Greška naplate: " + error.getMessage()); return; }
 
-                String st = safeStr(snap.child("status").getValue(String.class)).toUpperCase(Locale.ROOT);
-                if (TextUtils.isEmpty(st)) st = "ACTIVE";
-                if (!"ACTIVE".equals(st)) { finishRefundFail("Refund nije moguć."); return; }
-
-                Long startL = snap.child("startTime").getValue(Long.class);
-                Long endL = snap.child("endTime").getValue(Long.class);
-                Double amountD = snap.child("amount").getValue(Double.class);
-
-                String lotId = snap.child("parkingLotId").getValue(String.class);
-                String space = snap.child("space").getValue(String.class);
-
-                long start = startL == null ? 0L : startL;
-                long end = endL == null ? 0L : endL;
-                double amount = amountD == null ? 0.0 : amountD;
-
-                if (end <= serverNow) { finishRefundFail("Parking je istekao. Refund nije moguć."); return; }
-
-                long totalMs = Math.max(1L, (end - start));
-                long remainingMs = Math.max(0L, (end - serverNow));
-                double refund = round2(amount * (remainingMs / (double) totalMs));
-                if (refund < MIN_REFUND_KM) { finishRefundFail("Preostali iznos je premali za refund."); return; }
-
-                sesRef.runTransaction(new Transaction.Handler() {
-                    @NonNull @Override
-                    public Transaction.Result doTransaction(@NonNull MutableData cur) {
-                        String s = safeStr((String) cur.child("status").getValue()).toUpperCase(Locale.ROOT);
-                        if (TextUtils.isEmpty(s)) s = "ACTIVE";
-                        if (!"ACTIVE".equals(s)) return Transaction.abort();
-
-                        cur.child("status").setValue("REFUNDED");
-                        cur.child("refundedAt").setValue(serverNow);
-                        cur.child("refundedAmount").setValue(refund);
-
-                        cur.child("endTime").setValue(serverNow);
-                        cur.child("endedAt").setValue(serverNow);
-                        return Transaction.success(cur);
+                    // Insufficient balance — offer top-up
+                    if (!committed) {
+                        isPaying = false;
+                        setPayEnabled(true);
+                        if (isAdded()) requireActivity().runOnUiThread(() -> showTopupDialog(amount));
+                        return;
                     }
 
-                    @Override
-                    public void onComplete(@Nullable DatabaseError e1, boolean committed, @Nullable DataSnapshot dsAfter) {
-                        if (e1 != null) { finishRefundFail("Greška refund-a: " + e1.getMessage()); return; }
-                        if (!committed) { finishRefundFail("Refund nije moguć."); return; }
+                    // Create parking session
+                    Map<String, Object> sess = new HashMap<>();
+                    sess.put("userId",          uid);
+                    sess.put("zoneId",          zone.id);
+                    sess.put("startTime",       startTime);
+                    sess.put("endTime",         endTime);
+                    sess.put("amount",          amount);
+                    sess.put("type",            type);
+                    sess.put("plate",           plateNorm);
+                    sess.put("plateNormalized", plateNorm);
+                    sess.put("status",          "ACTIVE");
 
-                        FirebaseUtils.balance(uid).runTransaction(new Transaction.Handler() {
-                            @NonNull @Override
-                            public Transaction.Result doTransaction(@NonNull MutableData curBal) {
-                                Double b = curBal.getValue(Double.class);
-                                if (b == null) b = 0.0;
-                                curBal.setValue(b + refund);
-                                return Transaction.success(curBal);
-                            }
+                    FirebaseUtils.session(sessionId).setValue(sess)
+                            .addOnSuccessListener(v2 -> {
+                                String plateKey = plateNorm;
+                                ActiveSession as = new ActiveSession();
+                                as.sessionId = sessionId;
+                                as.plate     = plateKey;
+                                as.startTime = startTime;
+                                as.endTime   = endTime;
+                                as.amount    = amount;
+                                as.zoneName  = zone.name;
+                                activeSessionsMap.put(plateKey, as);
 
-                            @Override
-                            public void onComplete(@Nullable DatabaseError e2, boolean committed2, @Nullable DataSnapshot d2) {
-
-                                if (!TextUtils.isEmpty(lotId) && !TextUtils.isEmpty(space)) {
-                                    DatabaseReference spaceRef = FirebaseUtils.parkingSpace(lotId, space);
-                                    rollbackSpaceIfMyLock(spaceRef, uid, sessionId, () -> {});
-                                }
-
-                                toast(String.format(Locale.getDefault(), "Refund uspješan: +%.2f KM", refund));
-                                isRefunding = false;
-                                setRefundUiEnabled(true);
-
-                                stopStatusTicker(true);
-                                refreshActiveStatusForCurrentPlate();
-                            }
-                        });
-                    }
-                });
-
-            }).addOnFailureListener(e -> finishRefundFail(mapFirebaseError(e)));
+                                saveFormState();
+                                isPaying = false;
+                                setPayEnabled(true);
+                                if (isAdded()) requireActivity().runOnUiThread(() -> {
+                                    renderActiveSessions();
+                                    startTicker();
+                                });
+                            })
+                            .addOnFailureListener(e -> failUnlock("Greška upisa sesije."));
+                }
+            });
         });
     }
 
-    private void finishRefundFail(String msg) {
-        toast(msg);
-        isRefunding = false;
-        setRefundUiEnabled(true);
-        refreshActiveStatusForCurrentPlate();
+    // ═══════════════════════════════════════════════════════
+    // TICKER
+    // ═══════════════════════════════════════════════════════
+
+    private void startTicker() {
+        if (!isAdded() || vpActiveSessions == null) return;
+        stopTicker();
+        statusTick = new Runnable() {
+            @Override public void run() {
+                if (!isAdded()) return;
+                updateAllActiveSessionsUI();
+                if (vpActiveSessions != null) {
+                    vpActiveSessions.removeCallbacks(this);
+                    vpActiveSessions.postDelayed(this, TICK_MS);
+                }
+            }
+        };
+        vpActiveSessions.post(statusTick);
     }
 
-    // =========================================================
-    // UI helpers
-    // =========================================================
-    private void setPayUiEnabled(boolean enabled) {
-        if (btnPay1h != null) btnPay1h.setEnabled(enabled);
-        if (btnPay2h != null) btnPay2h.setEnabled(enabled);
-        if (btnPay3h != null) btnPay3h.setEnabled(enabled);
-        if (btnPayDay != null) btnPayDay.setEnabled(enabled);
+    private void stopTicker() {
+        if (vpActiveSessions != null && statusTick != null)
+            vpActiveSessions.removeCallbacks(statusTick);
+        statusTick = null;
     }
 
-    private void setRefundUiEnabled(boolean enabled) {
-        if (btnRefund != null) btnRefund.setEnabled(enabled);
+    // ═══════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════
+
+    String formatRemain(long ms) {
+        if (ms <= 0) return "";
+        long h   = ms / 3600000;
+        long min = (ms % 3600000) / 60000;
+        long sec = (ms / 1000) % 60;
+        return h > 0
+                ? String.format(Locale.getDefault(), "%d:%02d:%02d", h, min, sec)
+                : String.format(Locale.getDefault(), "%d:%02d", min, sec);
     }
 
-    private void failAndUnlock(String msg) {
-        toast(msg);
-        isPaying = false;
-        setPayUiEnabled(true);
-        setRefundUiEnabled(true);
-    }
-
-    private void doneAndUnlock() {
-        isPaying = false;
-        setPayUiEnabled(true);
-        setRefundUiEnabled(true);
-    }
-
-    // =========================================================
-    // Validation / calc
-    // =========================================================
-    private boolean validateInputsBasic() {
-        int idx = getSelectedLotIndex();
-        if (idx < 0 || idx >= lots.size()) { toast("Odaberite parking."); return false; }
-
-        String spotStr = etSpot.getText().toString().trim();
-        if (TextUtils.isEmpty(spotStr)) { toast("Unesite broj mjesta."); return false; }
-        int s;
-        try { s = Integer.parseInt(spotStr); }
-        catch (Exception e) { toast("Neispravan broj mjesta."); return false; }
-        if (s <= 0) { toast("Broj mjesta mora biti veći od 0."); return false; }
-
-        String plate = resolvePlateFromInput();
-        if (TextUtils.isEmpty(plate)) { toast("Unesite registarsku oznaku."); return false; }
-        if (!plate.matches("^[A-Z0-9 -]{4,12}$")) { toast("Neispravan format tablica."); return false; }
-
+    private boolean validateInputs() {
+        int idx = getSelectedZoneIndex();
+        if (idx < 0 || idx >= zones.size()) { toast("Odaberite zonu."); return false; }
+        String plate = resolvePlate();
+        if (TextUtils.isEmpty(plate)) {
+            toast("Prvo dodajte vozilo.");
+            showQuickAddVehicleDialog();
+            return false;
+        }
         return true;
     }
 
-    private String typeLabel(@NonNull String type){
+    private String resolvePlate() {
+        if (vehicleAdapter == null) return "";
+        int type = getItemViewTypeAt(currentVehicleIndex);
+        if (type == TYPE_VEHICLE)
+            if (currentVehicleIndex >= 0 && currentVehicleIndex < vehicles.size())
+                return vehicles.get(currentVehicleIndex).plate.toUpperCase(Locale.ROOT).trim();
+        return "";
+    }
+
+    private int getItemViewTypeAt(int pos) {
+        if (pos == vehicles.size()) return TYPE_ADD;
+        return TYPE_VEHICLE;
+    }
+
+    private double calcAmount(@NonNull String type, @NonNull ZoneItem zone) {
+        switch (type) {
+            case "1h": return zone.perHour;
+            case "2h": return zone.perHour * 2.0;
+            default:   return zone.perDay > 0 ? zone.perDay : zone.perHour * 8.0;
+        }
+    }
+
+    private long durationMs(@NonNull String type) {
+        switch (type) {
+            case "1h": return ONE_HOUR_MS;
+            case "2h": return 2 * ONE_HOUR_MS;
+            default:   return ONE_DAY_MS;
+        }
+    }
+
+    private String typeLabel(@NonNull String type) {
         switch (type) {
             case "1h": return "1 sat";
             case "2h": return "2 sata";
-            case "3h": return "3 sata";
-            default: return "Dnevna karta";
+            default:   return "Dnevna karta";
         }
     }
 
-    private long durationByType(@NonNull String type){
-        switch (type) {
-            case "1h": return 1L * ONE_HOUR_MS;
-            case "2h": return 2L * ONE_HOUR_MS;
-            case "3h": return 3L * ONE_HOUR_MS;
-            default: return ONE_DAY_MS;
-        }
+    private void setPayEnabled(boolean en) {
+        if (btnPay       != null) btnPay.setEnabled(en);
+        if (btnDailyPass != null) btnDailyPass.setEnabled(en);
     }
 
-    private double calcAmountByType(@NonNull String type, @NonNull LotItem lot){
-        switch (type) {
-            case "1h": return lot.perHour;
-            case "2h": return lot.perHour * 2.0;
-            case "3h": return lot.perHour * 3.0;
-            default:   return (lot.perDay > 0 ? lot.perDay : (lot.perHour * 8.0));
-        }
+    private void failUnlock(String msg) { toast(msg); isPaying = false; setPayEnabled(true); }
+
+    private void fetchServerNow(@NonNull Consumer<Long> cb) {
+        FirebaseUtils.infoServerTimeOffset().get()
+                .addOnSuccessListener(s -> {
+                    Long off = s.exists() ? s.getValue(Long.class) : null;
+                    cb.accept(System.currentTimeMillis() + (off == null ? 0L : off));
+                })
+                .addOnFailureListener(e -> cb.accept(System.currentTimeMillis()));
     }
 
-    // =========================================================
-    // Helpers
-    // =========================================================
-    private boolean hasInvalidKeyChar(String key) {
-        return TextUtils.isEmpty(key) || INVALID_KEY_CHARS.matcher(key).find();
-    }
-
-    @NonNull
-    private String resolvePlateFromInput() {
-        String raw = etPlate == null ? "" : etPlate.getText().toString().trim();
-        if (TextUtils.isEmpty(raw)) return "";
-        return raw.toUpperCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
-    }
-
-    @NonNull
-    private String normalizePlate(String plate) {
-        if (TextUtils.isEmpty(plate)) return "";
-        return plate.toUpperCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
-    }
-
-    private void toast(String s) {
-        if (getContext() != null) Toast.makeText(getContext(), s, Toast.LENGTH_LONG).show();
-    }
-
-    private double round2(double v) {
-        return Math.round(v * 100.0) / 100.0;
+    private void toast(String msg) {
+        if (getContext() != null) Toast.makeText(getContext(), msg, Toast.LENGTH_LONG).show();
     }
 
     private static String safeStr(String s) { return s == null ? "" : s.trim(); }
-    private static String getLower(String s) { return s == null ? "" : s.trim().toLowerCase(Locale.ROOT); }
 
-    private String mapFirebaseError(@NonNull Exception e) {
-        String msg = e.getMessage() == null ? "Greška." : e.getMessage();
-        String low = msg.toLowerCase(Locale.ROOT);
-        if (low.contains("permission denied") || low.contains("permission_denied")) {
-            return "Permission denied (Firebase rules). Provjeri rules za spaces/balances/parkingSessions.";
-        }
-        return "Greška: " + msg;
+    private static String normalizePlateStd(String s) {
+        if (s == null) return "";
+        String up = s.toUpperCase(Locale.ROOT).replace("Đ", "D");
+        up = Normalizer.normalize(up, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return up.replaceAll("[^A-Z0-9]", "");
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        if (tvStatus != null && statusTick != null) tvStatus.removeCallbacks(statusTick);
-    }
-
-    @Override
-    public void onDestroyView() {
-        stopStatusTicker(false);
-        super.onDestroyView();
-    }
-
-    // =========================================================
-    // Models
-    // =========================================================
-    static class LotItem {
-        String id, name;
-        double perHour = 0.0, perDay = 0.0;
-        @NonNull @Override public String toString() { return name != null ? name : id; }
-    }
+    static class ZoneItem { String id, name; double perHour, perDay; }
 
     static class VehicleDisplay {
-        String display;
-        String plate;
-        VehicleDisplay(String display, String plate) {
-            this.display = display;
-            this.plate = plate;
+        String display, plate;
+        VehicleDisplay(String d, String p) { display = d; plate = p; }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // ADAPTER: aktivne sesije (ViewPager)
+    // ═══════════════════════════════════════════════════════
+    class SessionSliderAdapter extends RecyclerView.Adapter<SessionSliderAdapter.VH> {
+        @NonNull @Override
+        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.row_active_session, parent, false);
+            return new VH(v);
+        }
+        @Override public void onBindViewHolder(@NonNull VH h, int position) {
+            ActiveSession s = sessionList.get(position);
+            h.tvPlate.setText(s.plate);
+            h.tvZone.setText((s.zoneName == null ? "—" : s.zoneName) + " · aktivno");
+
+            long now = System.currentTimeMillis();
+            long remain = s.endTime - now;
+            long total  = s.endTime - s.startTime;
+            if (remain > 0 && total > 0) {
+                h.tvCountdown.setText(formatRemain(remain));
+                int percent = (int) Math.max(0, Math.min(100, (remain * 100L) / total));
+                h.pb.setProgress(percent);
+            } else {
+                h.tvCountdown.setText("0:00");
+                h.pb.setProgress(0);
+            }
+        }
+        @Override public int getItemCount() { return sessionList.size(); }
+
+        class VH extends RecyclerView.ViewHolder {
+            TextView tvPlate, tvZone, tvCountdown;
+            ProgressBar pb;
+            VH(View v) {
+                super(v);
+                tvPlate     = v.findViewById(R.id.tvSessionPlate);
+                tvZone      = v.findViewById(R.id.tvSessionZone);
+                tvCountdown = v.findViewById(R.id.tvSessionCountdown);
+                pb          = v.findViewById(R.id.progressSessionTimer);
+            }
         }
     }
 
-    static class SimpleTextWatcher implements android.text.TextWatcher {
-        private final Runnable after;
-        SimpleTextWatcher(Runnable after){ this.after = after; }
-        @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-        @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-        @Override public void afterTextChanged(android.text.Editable s) { if (after != null) after.run(); }
+    // ═══════════════════════════════════════════════════════
+    // ADAPTER: vozila
+    // ═══════════════════════════════════════════════════════
+    class VehicleSliderAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+        @Override public int getItemViewType(int position) { return getItemViewTypeAt(position); }
+
+        @NonNull @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            LayoutInflater inf = LayoutInflater.from(parent.getContext());
+            if (viewType == TYPE_ADD)
+                return new AddVH(inf.inflate(R.layout.row_vehicle_add, parent, false));
+            return new VehicleVH(inf.inflate(R.layout.row_vehicle_slider, parent, false));
+        }
+
+        @Override public void onBindViewHolder(@NonNull RecyclerView.ViewHolder h, int position) {
+            int type = getItemViewType(position);
+            if (type == TYPE_VEHICLE) {
+                VehicleDisplay vd = vehicles.get(position);
+                VehicleVH vh = (VehicleVH) h;
+                vh.tvPlate.setText(vd.plate);
+                vh.tvModel.setText(TextUtils.isEmpty(vd.display) ? vd.plate : vd.display);
+            } else if (type == TYPE_ADD) {
+                AddVH ah = (AddVH) h;
+                ah.itemView.setOnClickListener(v -> showQuickAddVehicleDialog());
+            }
+        }
+
+        @Override public int getItemCount() { return vehicles.size() + 1; }
+
+        class VehicleVH extends RecyclerView.ViewHolder {
+            ImageView ivIcon;
+            TextView tvPlate, tvModel;
+            VehicleVH(View v) {
+                super(v);
+                ivIcon  = v.findViewById(R.id.ivVehicleIcon);
+                tvPlate = v.findViewById(R.id.tvVehiclePlate);
+                tvModel = v.findViewById(R.id.tvVehicleModel);
+            }
+        }
+
+        class AddVH extends RecyclerView.ViewHolder {
+            AddVH(View v) { super(v); }
+        }
     }
 }

@@ -1,29 +1,241 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
+    android:background="@color/background"
     android:fitsSystemWindows="true">
 
-    <!-- HEADER -->
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- HERO HEADER -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="32dp"
-        android:paddingBottom="12dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="24dp">
+        android:orientation="vertical"
+        android:background="@drawable/bg_header_gradient">
 
-        <!-- Back dugme -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBack"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_white_18"
+                android:contentDescription="Nazad"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text=""
+                app:backgroundTint="@null"
+                app:elevation="0dp"
+                app:icon="@drawable/ic_chevron_left"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                app:iconTint="@color/white"
+                app:rippleColor="#33FFFFFF" />
+
+            <TextView
+                android:id="@+id/tvScreenTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Upravljanje nalozima"
+                android:textColor="@color/white"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAdd"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_white_18"
+                android:contentDescription="Dodaj korisnika"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text=""
+                app:backgroundTint="@null"
+                app:elevation="0dp"
+                app:icon="@drawable/ic_plus"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="18dp"
+                app:iconTint="@color/white"
+                app:rippleColor="#33FFFFFF" />
+        </LinearLayout>
+
+        <!-- 2 statistike -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/bg_white_15_rounded"
+                android:padding="14dp"
+                android:layout_marginEnd="6dp">
+
+                <TextView
+                    android:id="@+id/tvCountUsers"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Korisnici"
+                    android:textColor="@color/blue_200"
+                    android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/bg_white_15_rounded"
+                android:padding="14dp"
+                android:layout_marginStart="6dp">
+
+                <TextView
+                    android:id="@+id/tvCountKontrolori"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Kontrolori"
+                    android:textColor="@color/blue_200"
+                    android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- FILTER RED -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="12dp">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="10dp"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="2dp"
+            app:cardUseCompatPadding="true"
+            app:cardPreventCornerOverlap="false"
+            app:cardBackgroundColor="@color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="6dp">
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/tabAll"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_tab_active"
+                    android:backgroundTint="@null"
+                    android:letterSpacing="0.08"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
+                    android:stateListAnimator="@null"
+                    android:text="SVE"
+                    android:textAllCaps="true"
+                    android:textColor="@color/white"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/tabUser"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:backgroundTint="@null"
+                    android:letterSpacing="0.08"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
+                    android:stateListAnimator="@null"
+                    android:text="USER"
+                    android:textAllCaps="true"
+                    android:textColor="@color/muted_foreground"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/tabKontrolor"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:backgroundTint="@null"
+                    android:letterSpacing="0.06"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
+                    android:stateListAnimator="@null"
+                    android:text="KONTROLOR"
+                    android:textAllCaps="true"
+                    android:textColor="@color/muted_foreground"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnBack"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:contentDescription="Nazad"
+            android:id="@+id/btnSearch"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
             android:insetLeft="0dp"
             android:insetTop="0dp"
             android:insetRight="0dp"
@@ -32,170 +244,106 @@
             android:minHeight="0dp"
             android:padding="0dp"
             android:text=""
-            app:cornerRadius="14dp"
-            app:icon="@drawable/ic_arrow_back_24"
+            android:contentDescription="Pretraga"
+            android:background="@drawable/bg_btn_active_primary"
+            app:backgroundTint="@null"
+            app:icon="@android:drawable/ic_menu_search"
+            app:iconTint="@color/white"
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="22dp"
-            app:iconTint="?attr/colorOnSurface"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:strokeColor="?attr/colorOutline"
-            app:strokeWidth="1dp" />
+            app:cornerRadius="18dp"
+            app:elevation="4dp" />
+    </LinearLayout>
 
-        <!-- Naslov -->
-        <TextView
-            android:id="@+id/tvScreenTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="Upravljanje nalozima"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:textColor="?attr/colorOnSurface"
-            android:fontFamily="sans-serif-black"
-            android:letterSpacing="0.02"
-            app:layout_constraintStart_toEndOf="@+id/btnBack"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- DIVIDER -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:background="?attr/colorOutlineVariant" />
-
-    <!-- FILTER KARTICA -->
+    <!-- SEARCH KARTICA -->
     <androidx.cardview.widget.CardView
+        android:id="@+id/searchCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="8dp"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="0dp"
-        app:cardBackgroundColor="?attr/colorSurfaceVariant">
+        android:layout_marginBottom="12dp"
+        android:visibility="gone"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="2dp"
+        app:cardUseCompatPadding="true"
+        app:cardPreventCornerOverlap="false"
+        app:cardBackgroundColor="@color/white"
+        tools:visibility="visible">
 
-        <LinearLayout
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_margin="12dp"
+            app:boxBackgroundMode="outline"
+            app:boxCornerRadiusTopStart="14dp"
+            app:boxCornerRadiusTopEnd="14dp"
+            app:boxCornerRadiusBottomStart="14dp"
+            app:boxCornerRadiusBottomEnd="14dp"
+            app:boxStrokeColor="@color/blue_600"
+            app:boxStrokeWidth="2dp"
+            app:boxBackgroundColor="@color/blue_50"
+            app:hintEnabled="false"
+            app:icon="@android:drawable/ic_menu_search"
+            app:startIconTint="@color/blue_600"
+            app:endIconMode="clear_text"
+            app:endIconTint="@color/muted_foreground">
 
-            <!-- Tip naloga label -->
-            <TextView
-                android:text="Tip naloga"
-                android:textSize="11sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:letterSpacing="0.06"
-                android:textAllCaps="true"
-                android:layout_marginBottom="6dp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <!-- spType kao AutoCompleteTextView -->
-            <com.google.android.material.textfield.TextInputLayout
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etSearch"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
-                app:boxBackgroundMode="outline"
-                app:boxCornerRadiusTopStart="12dp"
-                app:boxCornerRadiusTopEnd="12dp"
-                app:boxCornerRadiusBottomStart="12dp"
-                app:boxCornerRadiusBottomEnd="12dp"
-                app:boxStrokeColor="?attr/colorOutline"
-                app:boxStrokeWidth="1dp"
-                app:hintEnabled="false"
-                app:endIconMode="dropdown_menu"
-                app:endIconTint="?attr/colorOnSurfaceVariant">
-
-                <AutoCompleteTextView
-                    android:id="@+id/spType"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@null"
-                    android:completionThreshold="0"
-                    android:cursorVisible="false"
-                    android:focusable="true"
-                    android:focusableInTouchMode="false"
-                    android:hint="Odaberi tip"
-                    android:inputType="none"
-                    android:minHeight="50dp"
-                    android:paddingStart="16dp"
-                    android:paddingTop="14dp"
-                    android:paddingEnd="16dp"
-                    android:paddingBottom="14dp"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textColorHint="?attr/colorOnSurfaceVariant"
-                    tools:ignore="SpeakableTextPresentCheck" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Dugmad: Osvježi + Dodaj -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnRefresh"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:text="Osvježi"
-                    android:textAllCaps="false"
-                    android:textSize="14sp"
-                    android:textColor="?attr/colorOnSurface"
-                    app:cornerRadius="12dp"
-                    app:strokeColor="?attr/colorOutline"
-                    app:strokeWidth="1dp"
-                    app:icon="@android:drawable/ic_popup_sync"
-                    app:iconTint="?attr/colorOnSurface"
-                    app:iconSize="18dp"
-                    app:iconPadding="8dp" />
-
-                <Space
-                    android:layout_width="10dp"
-                    android:layout_height="wrap_content" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAdd"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:text="Dodaj"
-                    android:textAllCaps="false"
-                    android:textSize="14sp"
-                    android:textColor="?attr/colorOnPrimary"
-                    app:backgroundTint="?attr/colorPrimary"
-                    app:cornerRadius="12dp"
-                    app:elevation="0dp"
-                    app:rippleColor="#33FFFFFF"
-                    app:icon="@android:drawable/ic_input_add"
-                    app:iconTint="?attr/colorOnPrimary"
-                    app:iconSize="18dp"
-                    app:iconPadding="8dp" />
-
-            </LinearLayout>
-
-        </LinearLayout>
+                android:layout_height="52dp"
+                android:hint="Pretraži po imenu ili emailu..."
+                android:textColorHint="@color/muted_foreground"
+                android:textColor="@color/foreground"
+                android:textSize="14sp"
+                android:inputType="text"
+                android:maxLines="1"
+                android:imeOptions="actionSearch"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp" />
+        </com.google.android.material.textfield.TextInputLayout>
     </androidx.cardview.widget.CardView>
 
-    <!-- RecyclerView -->
+    <!-- Naslov sekcije: X NALOGA sa plavom crticom (ETALON) -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="14dp"
+            android:background="@drawable/bg_section_bar_blue"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/tvListHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 NALOGA"
+            android:textColor="@color/foreground"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12" />
+    </LinearLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:paddingTop="4dp"
-        android:paddingBottom="16dp" />
+        android:paddingBottom="16dp"
+        android:scrollbars="none" />
 
 </LinearLayout>

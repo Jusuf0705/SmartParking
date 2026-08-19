@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Bijela pill pozadina sa suptilnom sjenom za "Dopuni" dugme u hero header-u.
+    Kontrastira sa plavim gradientom i djeluje kao poziv za akciju.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="22dp" />
+    <solid android:color="@color/white" />
+</shape>

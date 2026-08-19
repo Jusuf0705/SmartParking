@@ -1,144 +1,179 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginVertical="8dp"
-    android:layout_marginHorizontal="16dp"
-    app:cardCornerRadius="24dp"
-    app:cardElevation="0dp"
-    app:cardUseCompatPadding="true"
-    app:cardPreventCornerOverlap="true"
-    app:cardBackgroundColor="?attr/colorSurfaceVariant">
+    android:orientation="vertical"
+    android:background="@drawable/bg_card"
+    android:layout_marginBottom="12dp"
+    android:padding="16dp"
+    android:elevation="2dp">
 
+    <!-- Header row: icon + name + zone badge -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
 
-        <!-- Gornji red: Naziv + Navigate dugme -->
+        <!-- Car icon -->
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_car"
+            android:tint="@color/blue_600"
+            android:background="@drawable/bg_icon_circle"
+            android:padding="8dp"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="Parking ikona" />
+
+        <!-- Name + address -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:baselineAligned="false">
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-            <!-- Naziv parkinga -->
             <TextView
-                android:id="@+id/rowTitle"
-                android:layout_width="0dp"
+                android:id="@+id/tvParkingName"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:text="Parking ESP"
+                android:textColor="@color/foreground"
+                android:textSize="14sp"
                 android:textStyle="bold"
-                android:textSize="18sp"
-                android:letterSpacing="0.01"
-                android:textColor="?attr/colorOnSurface"
-                android:maxLines="2"
+                android:maxLines="1"
                 android:ellipsize="end" />
 
-            <!-- Navigate dugme -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnNav"
-                android:layout_width="46dp"
-                android:layout_height="46dp"
-                android:layout_marginStart="12dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                android:minHeight="0dp"
-                android:minWidth="0dp"
-                android:padding="0dp"
-                android:text=""
-                app:backgroundTint="?attr/colorPrimary"
-                app:cornerRadius="14dp"
-                app:icon="@android:drawable/ic_menu_directions"
-                app:iconGravity="textStart"
-                app:iconPadding="0dp"
-                app:iconSize="24dp"
-                app:iconTint="?attr/colorOnPrimary"
-                app:rippleColor="#33FFFFFF"
-                tools:ignore="TouchTargetSizeCheck" />
-
-        </LinearLayout>
-
-        <!-- Divider -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="14dp"
-            android:layout_marginBottom="12dp"
-            android:background="?attr/colorOutlineVariant" />
-
-        <!-- Ulica / Cijena / Udaljenost -->
-        <TextView
-            android:id="@+id/rowSubtitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:lineSpacingExtra="4dp"
-            android:maxLines="10"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="14sp" />
-
-        <!-- Donji red: badge + details -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:baselineAligned="false">
-
-            <!-- rowExtra badge -->
             <TextView
-                android:id="@+id/rowExtra"
-                android:layout_width="0dp"
-                android:layout_height="46dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_badge"
-                android:backgroundTint="#22C55E"
-                android:gravity="center"
-                android:textColor="@android:color/white"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:ellipsize="end"
+                android:id="@+id/tvParkingAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Tuzla bb"
+                android:textColor="@color/muted_foreground"
+                android:textSize="12sp"
+                android:layout_marginTop="2dp"
                 android:maxLines="1"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp" />
-
-            <Space
-                android:layout_width="12dp"
-                android:layout_height="wrap_content" />
-
-            <!-- btnDetails -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDetails"
-                android:layout_width="46dp"
-                android:layout_height="46dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                android:minHeight="0dp"
-                android:minWidth="0dp"
-                android:padding="0dp"
-                android:text=""
-                app:backgroundTint="?attr/colorPrimary"
-                app:cornerRadius="14dp"
-                app:icon="@android:drawable/ic_menu_info_details"
-                app:iconGravity="textStart"
-                app:iconPadding="0dp"
-                app:iconSize="24dp"
-                app:iconTint="?attr/colorOnPrimary"
-                app:rippleColor="#33FFFFFF"
-                tools:ignore="TouchTargetSizeCheck" />
-
+                android:ellipsize="end" />
         </LinearLayout>
 
+        <!-- Zone badge -->
+        <TextView
+            android:id="@+id/tvZone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Zona 1"
+            android:textColor="@color/blue_600"
+            android:background="@drawable/bg_zone_badge"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textSize="11sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
-</androidx.cardview.widget.CardView>
+    <!-- Status + count row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Slobodno"
+            android:textColor="@color/green_700"
+            android:background="@drawable/bg_status_available"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tvSpotCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="3/3 mjesta"
+            android:textColor="@color/muted_foreground"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Progress bar -->
+    <ProgressBar
+        android:id="@+id/progressAvailability"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:progress="100"
+        android:progressDrawable="@drawable/progress_available"
+        android:background="@drawable/bg_progress_track"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Action buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Distance button -->
+        <LinearLayout
+            android:id="@+id/btnDistance"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_distance_btn"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginEnd="8dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/ic_navigation"
+                android:tint="@color/blue_600"
+                android:layout_marginEnd="6dp"
+                android:contentDescription="Navigacija" />
+
+            <TextView
+                android:id="@+id/tvDistance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1.9 km"
+                android:textColor="@color/muted_foreground"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Details / Full button -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnDetails"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="Detalji"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:background="@drawable/bg_btn_active_primary"
+            android:backgroundTint="@null"
+            android:stateListAnimator="@null"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

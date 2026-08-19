@@ -1,165 +1,511 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- LOKACIJA: res/layout/activity_admin_panel.xml -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
+    android:background="@color/background"
     android:fitsSystemWindows="true"
     tools:context=".ui.admin.AdminPanel">
 
-    <!-- HEADER -->
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- HERO HEADER -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="32dp"
-        android:paddingBottom="12dp"
-        android:paddingStart="24dp"
-        android:paddingEnd="16dp">
+        android:orientation="vertical"
+        android:background="@drawable/bg_header_gradient">
 
-        <!-- Naslov -->
-        <TextView
-            android:id="@+id/tvTitle"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <TextView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:gravity="center"
+                android:text="A"
+                android:textColor="@color/blue_600"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_white_18_circle"
+                android:layout_marginEnd="12dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Admin panel"
+                    android:textColor="@color/white"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Smart Parking · Tuzla"
+                    android:textColor="@color/blue_200"
+                    android:textSize="11sp"
+                    android:layout_marginTop="1dp" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSignOut"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text=""
+                android:contentDescription="Odjavi se"
+                android:background="@drawable/bg_white_18"
+                app:backgroundTint="@null"
+                app:icon="@android:drawable/ic_lock_power_off"
+                app:iconSize="18dp"
+                app:iconTint="@color/white"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:rippleColor="#33FFFFFF"
+                app:elevation="0dp"
+                tools:ignore="TouchTargetSizeCheck" />
+        </LinearLayout>
+
+        <!-- Stats strip -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-black"
-            android:gravity="center"
-            android:letterSpacing="0.02"
-            android:text="Admin panel"
-            android:textColor="?attr/colorOnSurface"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="@+id/btnSignOut"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="18dp">
 
-        <!-- Odjava — desni ćošak, 34×34dp -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSignOut"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:insetLeft="0dp"
-            android:insetRight="0dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:padding="0dp"
-            android:text=""
-            android:contentDescription="Odjavi se"
-            app:icon="@android:drawable/ic_lock_power_off"
-            app:iconSize="18dp"
-            app:iconTint="?attr/colorError"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:cornerRadius="10dp"
-            app:strokeColor="?attr/colorError"
-            app:strokeWidth="1dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_white_15_rounded"
+                android:padding="14dp"
+                android:layout_marginEnd="6dp">
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_car"
+                    android:tint="@color/white"
+                    android:background="@drawable/bg_white_18_circle"
+                    android:padding="7dp"
+                    android:layout_marginEnd="10dp"
+                    android:contentDescription="Sesije" />
 
-    <!-- DIVIDER -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:background="?attr/colorOutlineVariant" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvActiveSessions"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="@color/white"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:lineSpacingMultiplier="0.9" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Aktivne sesije"
+                        android:textColor="@color/blue_200"
+                        android:textSize="10sp"
+                        android:layout_marginTop="1dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_white_15_rounded"
+                android:padding="14dp"
+                android:layout_marginStart="6dp">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_credit_card"
+                    android:tint="@color/white"
+                    android:background="@drawable/bg_white_18_circle"
+                    android:padding="7dp"
+                    android:layout_marginEnd="10dp"
+                    android:contentDescription="Prihod" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="bottom">
+
+                        <TextView
+                            android:id="@+id/tvRevenueToday"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/white"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:lineSpacingMultiplier="0.9" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="KM"
+                            android:textColor="@color/blue_200"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:layout_marginStart="3dp"
+                            android:layout_marginBottom="3dp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Prihod danas"
+                        android:textColor="@color/blue_200"
+                        android:textSize="10sp"
+                        android:layout_marginTop="1dp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
 
     <!-- SADRŽAJ -->
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="16dp">
+        android:scrollbars="none"
+        android:fillViewport="true">
 
-        <!-- Kartica: Akcije -->
-        <androidx.cardview.widget.CardView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:cardUseCompatPadding="true"
-            app:cardBackgroundColor="?attr/colorSurfaceVariant">
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="20dp"
+            android:paddingBottom="24dp">
 
+            <!-- UPRAVLJANJE naslov sa plavom crticom (ETALON) -->
             <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp"
+                android:paddingStart="4dp">
+
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="14dp"
+                    android:background="@drawable/bg_section_bar_blue"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="UPRAVLJANJE"
+                    android:textColor="@color/foreground"
+                    android:textSize="11sp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.12"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
+                app:cardCornerRadius="22dp"
+                app:cardElevation="3dp"
+                app:cardUseCompatPadding="true"
+                app:cardPreventCornerOverlap="false"
+                app:cardBackgroundColor="@color/white">
 
-                <!-- Korisnici -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnUsers"
-                    style="?attr/materialButtonOutlinedStyle"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginBottom="8dp"
-                    android:text="Upravljanje korisnicima"
-                    android:textSize="15sp"
-                    android:textColor="?attr/colorOnSurface"
-                    android:gravity="start|center_vertical"
-                    android:paddingStart="16dp"
-                    app:cornerRadius="14dp"
-                    app:strokeColor="?attr/colorOutline"
-                    app:strokeWidth="1dp"
-                    app:icon="@android:drawable/ic_menu_manage"
-                    app:iconTint="?attr/colorPrimary"
-                    app:iconSize="20dp"
-                    app:iconPadding="12dp" />
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
 
-                <!-- Parking -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnParking"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginBottom="8dp"
-                    android:text="Upravljanje parkingom"
-                    android:textSize="15sp"
-                    android:textColor="?attr/colorOnSurface"
-                    android:gravity="start|center_vertical"
-                    android:paddingStart="16dp"
-                    app:cornerRadius="14dp"
-                    app:strokeColor="?attr/colorOutline"
-                    app:strokeWidth="1dp"
-                    app:icon="@android:drawable/ic_menu_directions"
-                    app:iconTint="?attr/colorPrimary"
-                    app:iconSize="20dp"
-                    app:iconPadding="12dp" />
+                    <!-- Korisnici -->
+                    <LinearLayout
+                        android:id="@+id/btnUsers"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
 
-                <!-- Kazne -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnFines"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:text="Pregled kazni"
-                    android:textSize="15sp"
-                    android:textColor="?attr/colorOnSurface"
-                    android:gravity="start|center_vertical"
-                    android:paddingStart="16dp"
-                    app:cornerRadius="14dp"
-                    app:strokeColor="?attr/colorOutline"
-                    app:strokeWidth="1dp"
-                    app:icon="@android:drawable/ic_menu_agenda"
-                    app:iconTint="?attr/colorPrimary"
-                    app:iconSize="20dp"
-                    app:iconPadding="12dp" />
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:src="@android:drawable/ic_menu_myplaces"
+                            android:tint="@color/blue_600"
+                            android:background="@drawable/bg_menu_icon"
+                            android:padding="8dp"
+                            android:layout_marginEnd="14dp"
+                            android:contentDescription="Korisnici" />
 
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
 
-    </LinearLayout>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Upravljanje korisnicima"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/foreground" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Pregled i uređivanje računa"
+                                android:textSize="11sp"
+                                android:textColor="@color/muted_foreground"
+                                android:layout_marginTop="1dp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="›"
+                            android:textSize="22sp"
+                            android:textColor="@color/muted_foreground" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/border_light"
+                        android:layout_marginStart="66dp"
+                        android:layout_marginEnd="16dp" />
+
+                    <!-- Parking -->
+                    <LinearLayout
+                        android:id="@+id/btnParking"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:src="@drawable/ic_car"
+                            android:tint="@color/blue_600"
+                            android:background="@drawable/bg_menu_icon"
+                            android:padding="8dp"
+                            android:layout_marginEnd="14dp"
+                            android:contentDescription="Parking" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Upravljanje parkingom"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/foreground" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Parkinzi i slobodna mjesta"
+                                android:textSize="11sp"
+                                android:textColor="@color/muted_foreground"
+                                android:layout_marginTop="1dp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="›"
+                            android:textSize="22sp"
+                            android:textColor="@color/muted_foreground" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/border_light"
+                        android:layout_marginStart="66dp"
+                        android:layout_marginEnd="16dp" />
+
+                    <!-- Zone -->
+                    <LinearLayout
+                        android:id="@+id/btnZones"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:src="@drawable/ic_map_pin"
+                            android:tint="@color/blue_600"
+                            android:background="@drawable/bg_menu_icon"
+                            android:padding="8dp"
+                            android:layout_marginEnd="14dp"
+                            android:contentDescription="Zone" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Upravljanje zonama"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/foreground" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Cijene i granice zona"
+                                android:textSize="11sp"
+                                android:textColor="@color/muted_foreground"
+                                android:layout_marginTop="1dp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="›"
+                            android:textSize="22sp"
+                            android:textColor="@color/muted_foreground" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/border_light"
+                        android:layout_marginStart="66dp"
+                        android:layout_marginEnd="16dp" />
+
+                    <!-- Kazne -->
+                    <LinearLayout
+                        android:id="@+id/btnFines"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:src="@drawable/ic_zap"
+                            android:tint="@color/destructive"
+                            android:background="@drawable/bg_delete_icon"
+                            android:padding="8dp"
+                            android:layout_marginEnd="14dp"
+                            android:contentDescription="Kazne" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Pregled kazni"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/foreground" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Izdate kazne i status naplate"
+                                android:textSize="11sp"
+                                android:textColor="@color/muted_foreground"
+                                android:layout_marginTop="1dp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="›"
+                            android:textSize="22sp"
+                            android:textColor="@color/muted_foreground" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>

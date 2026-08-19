@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LOKACIJA: res/layout/dialog_confirm_fine.xml -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/bg_bottom_sheet_handle" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="24dp">
+
+        <!-- Crveni avatar krug sa upozorenjem -->
+        <FrameLayout
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="14dp"
+            android:background="@drawable/bg_fine_avatar_red">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="⚠"
+                android:textColor="@color/white"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Izdavanje kazne"
+            android:textColor="@color/foreground"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Potvrdno pitanje — Java puni tekst (tvFineQuestion) -->
+        <TextView
+            android:id="@+id/tvFineQuestion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Da li ste sigurni da za ovo vozilo ne postoji aktivna uplata?"
+            android:textColor="@color/muted_foreground"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Iznos kazne (istaknut) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/bg_status_full"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:layout_marginBottom="18dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="IZNOS KAZNE"
+                android:textColor="@color/red_500"
+                android:textSize="10sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.12"
+                android:textStyle="bold"
+                android:layout_marginBottom="2dp" />
+
+            <TextView
+                android:id="@+id/tvFineAmount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="20.00 KM"
+                android:textColor="@color/red_500"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Detalji: Tablica -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Registarska oznaka"
+                android:textColor="@color/muted_foreground"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvFinePlate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="@color/foreground"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.05" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/border" />
+
+        <!-- Detalji: Vrijeme izdavanja -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:layout_marginBottom="22dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Vrijeme izdavanja"
+                android:textColor="@color/muted_foreground"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvFineTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="@color/foreground"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+
+        <!-- Potvrdi (crveni) -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnConfirmFine"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:text="Izdaj kaznu"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_btn_delete_primary"
+            android:backgroundTint="@null"
+            android:stateListAnimator="@null"
+            android:layout_marginBottom="10dp" />
+
+        <!-- Odustani -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCancelFine"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="Odustani"
+            android:textAllCaps="false"
+            android:textColor="@color/foreground"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_btn_cancel"
+            android:backgroundTint="@null"
+            android:stateListAnimator="@null" />
+
+    </LinearLayout>
+</LinearLayout>

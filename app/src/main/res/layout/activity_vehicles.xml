@@ -1,114 +1,138 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
+    android:orientation="vertical"
+    android:background="@color/background"
     android:fitsSystemWindows="true">
 
-    <!-- HEADER: Back (L) + Title (C) + Add (R) -->
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- HERO HEADER -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="26dp"
-        android:paddingBottom="13dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+        android:orientation="vertical"
+        android:background="@drawable/bg_header_gradient">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnBack"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:contentDescription="Nazad"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:padding="0dp"
-            android:text=""
-            app:cornerRadius="14dp"
-            app:icon="@drawable/ic_arrow_back_24"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="22dp"
-            app:iconTint="?attr/colorOnSurface"
-            app:strokeColor="?attr/colorOutline"
-            app:strokeWidth="1dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+        <!-- Nav row: samo btnBack i naslov (btnAddTop UKLONJEN) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddVehicle"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:contentDescription="Dodaj vozilo"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:padding="0dp"
-            android:text="+"
-            android:textAllCaps="false"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:gravity="center"
-            android:textColor="?attr/colorOnSurface"
-            app:cornerRadius="14dp"
-            app:strokeColor="?attr/colorOutline"
-            app:strokeWidth="1dp"
-            app:rippleColor="?attr/colorControlHighlight"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBack"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text=""
+                android:contentDescription="Nazad"
+                android:background="@drawable/bg_white_18"
+                app:backgroundTint="@null"
+                app:icon="@drawable/ic_chevron_left"
+                app:iconTint="@color/white"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="20dp"
+                app:rippleColor="#33FFFFFF"
+                app:elevation="0dp"
+                android:layout_marginEnd="12dp" />
 
-        <TextView
-            android:id="@+id/tvVehicleTitle"
-            android:layout_width="0dp"
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Moja vozila"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- Spacer da naslov ostane centriran (isti prostor kao btnBack) -->
+            <View
+                android:layout_width="36dp"
+                android:layout_height="36dp" />
+        </LinearLayout>
+
+        <!-- Hero: broj vozila -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-black"
-            android:gravity="center"
-            android:letterSpacing="0.02"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:text="Moja vozila"
-            android:textColor="?attr/colorOnSurface"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="@+id/btnAddVehicle"
-            app:layout_constraintStart_toStartOf="@+id/btnBack"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/bg_white_15_rounded"
+            android:padding="14dp">
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-    <!-- DIVIDER -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:background="?attr/colorOutlineVariant" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Registrovana vozila"
+                    android:textColor="@color/blue_200"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="2dp" />
 
-    <!-- LISTA — isti stil kao history -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvVehicles"
+                <TextView
+                    android:id="@+id/tvVehicleCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_car"
+                android:tint="@color/white"
+                android:background="@drawable/bg_white_18_circle"
+                android:padding="12dp"
+                android:contentDescription="Vozila" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!--
+        LISTA — RecyclerView zauzima cijeli preostali prostor.
+        Kartica "+ Dodaj novo vozilo" se sada ubacuje kao POSLEDNJI item u listu
+        preko adapter-a (VehiclesActivity.java).
+        emptyState se prikazuje samo dok se lista ne učita.
+    -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingTop="8dp"
-        android:paddingBottom="16dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:scrollbars="vertical"
-        android:nestedScrollingEnabled="true" />
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvVehicles"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:scrollbars="none" />
+    </FrameLayout>
 
 </LinearLayout>

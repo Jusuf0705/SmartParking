@@ -5,19 +5,23 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.view.ViewTreeObserver;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.smartparking.R;
 import com.example.smartparking.data.FirebaseUtils;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -26,90 +30,202 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class ManageParkingActivity extends AppCompatActivity {
 
     private RecyclerView recycler;
     private LotsAdapter adapter;
-    private DatabaseReference lotsRef;
-    private Button fabAdd;
+    private MaterialButton fabAdd;
+
+    private TextView tvCountParkings, tvCountTotalSpaces, tvCountFreeSpaces, tvListHeader;
+
+    private final List<ZoneOption> zoneOptions = new ArrayList<>();
+    private final Map<String, Integer> freeSpacesByLot = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        setContentView(R.layout.activity_manage_list);
+        setContentView(R.layout.activity_manage_parking);
 
-        ((TextView) findViewById(R.id.tvTitle)).setText("Parking lokacije");
+        MaterialButton btnBack = findViewById(R.id.btnBack);
+        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
 
-        fabAdd = findViewById(R.id.fabAdd);
-        fabAdd.setVisibility(View.VISIBLE);
-        fabAdd.setOnClickListener(v -> showAddEditDialog(null, null));
+        fabAdd             = findViewById(R.id.fabAdd);
+        recycler           = findViewById(R.id.recycler);
+        tvCountParkings    = findViewById(R.id.tvCountParkings);
+        tvCountTotalSpaces = findViewById(R.id.tvCountTotalSpaces);
+        tvCountFreeSpaces  = findViewById(R.id.tvCountFreeSpaces);
+        tvListHeader       = findViewById(R.id.tvListHeader);
 
-        recycler = findViewById(R.id.recycler);
+        fabAdd.setOnClickListener(v -> {
+            if (zoneOptions.isEmpty()) {
+                toast("Prvo dodaj zone u \"Upravljanje zonama\"");
+                return;
+            }
+            showAddEditDialog(null, null);
+        });
+
         recycler.setLayoutManager(new LinearLayoutManager(this));
         adapter = new LotsAdapter();
         recycler.setAdapter(adapter);
 
-        lotsRef = FirebaseUtils.parkingLotsRef();
-        lotsRef.addValueEventListener(new ValueEventListener() {
+        FirebaseUtils.zonesRef().addValueEventListener(new ValueEventListener() {
+            @Override public void onDataChange(@NonNull DataSnapshot ds) {
+                zoneOptions.clear();
+                for (DataSnapshot z : ds.getChildren()) {
+                    String id   = z.getKey();
+                    String name = z.child("name").getValue(String.class);
+                    Double ph   = z.child("perHour").getValue(Double.class);
+                    Double pd   = z.child("perDay").getValue(Double.class);
+                    if (id == null || name == null) continue;
+                    ZoneOption zo = new ZoneOption();
+                    zo.id      = id;
+                    zo.name    = name;
+                    zo.perHour = ph == null ? 0.0 : ph;
+                    zo.perDay  = pd == null ? 0.0 : pd;
+                    zoneOptions.add(zo);
+                }
+                adapter.notifyDataSetChanged();
+            }
+            @Override public void onCancelled(@NonNull DatabaseError e) {}
+        });
+
+        FirebaseUtils.root().child("parkingSpaces").addValueEventListener(new ValueEventListener() {
+            @Override public void onDataChange(@NonNull DataSnapshot ds) {
+                freeSpacesByLot.clear();
+                for (DataSnapshot lot : ds.getChildren()) {
+                    String lotId = lot.getKey();
+                    if (lotId == null) continue;
+                    int free = 0;
+                    for (DataSnapshot space : lot.getChildren()) {
+                        String status = space.child("status").getValue(String.class);
+                        if (status == null) status = space.getValue(String.class);
+                        if ("slobodno".equalsIgnoreCase(status)) free++;
+                    }
+                    freeSpacesByLot.put(lotId, free);
+                }
+                adapter.notifyDataSetChanged();
+                updateHeroStats();
+            }
+            @Override public void onCancelled(@NonNull DatabaseError e) {}
+        });
+
+        FirebaseUtils.parkingRef().addValueEventListener(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot ds) {
                 List<LotItem> list = new ArrayList<>();
                 for (DataSnapshot p : ds.getChildren()) {
-                    LotItem it = new LotItem();
-                    it.id = p.getKey();
-                    it.name = p.child("name").getValue(String.class);
-                    it.address = nvl(p.child("address").getValue(String.class));
-                    Double ph = p.child("pricing").child("perHour").getValue(Double.class);
-                    Double pd = p.child("pricing").child("perDay").getValue(Double.class);
-                    it.perHour = ph == null ? 0d : ph;
-                    it.perDay  = pd == null ? 0d : pd;
-                    Long tsL = p.child("totalSpaces").getValue(Long.class);
+                    LotItem it     = new LotItem();
+                    it.id          = p.getKey();
+                    it.name        = nvl(p.child("name").getValue(String.class));
+                    it.address     = nvl(p.child("address").getValue(String.class));
+                    it.zoneId      = nvl(p.child("zoneId").getValue(String.class));
+                    Long tsL       = p.child("totalSpaces").getValue(Long.class);
                     it.totalSpaces = tsL == null ? 0 : tsL.intValue();
                     list.add(it);
                 }
                 adapter.submit(list);
+                updateHeroStats();
             }
-            @Override public void onCancelled(@NonNull DatabaseError e) {
-                Toast.makeText(ManageParkingActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
-            }
+            @Override public void onCancelled(@NonNull DatabaseError e) { toast(e.getMessage()); }
         });
     }
 
-    private static String nvl(String s){ return s == null ? "" : s; }
-    private void toast(String s){ Toast.makeText(this, s, Toast.LENGTH_LONG).show(); }
-    private static String safe(EditText et){ return et.getText() == null ? "" : et.getText().toString().trim(); }
-    private static double parseD(String s){ try { return Double.parseDouble(s); } catch (Exception e){ return 0; } }
-    private static int parseI(String s){ try { return Integer.parseInt(s); } catch (Exception e){ return 0; } }
+    // ═══════════════════════════════════════════════════════
+    // HERO STATS
+    // ═══════════════════════════════════════════════════════
 
-    // ===== Model za red =====
+    private void updateHeroStats() {
+        int parkings = adapter.data.size();
+        int total = 0, free = 0;
+        for (LotItem it : adapter.data) {
+            total += it.totalSpaces;
+            Integer f = freeSpacesByLot.get(it.id);
+            free += (f == null) ? it.totalSpaces : f;
+        }
+
+        if (tvCountParkings    != null) tvCountParkings.setText(String.valueOf(parkings));
+        if (tvCountTotalSpaces != null) tvCountTotalSpaces.setText(String.valueOf(total));
+        if (tvCountFreeSpaces  != null) tvCountFreeSpaces.setText(String.valueOf(free));
+
+        if (tvListHeader != null) {
+            String suffix = (parkings == 1) ? " PARKING" : " PARKINGA";
+            tvListHeader.setText(parkings + suffix);
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────
+
+    private static String nvl(String s)     { return s == null ? "" : s; }
+    private void toast(String s)            { Toast.makeText(this, s, Toast.LENGTH_LONG).show(); }
+    private static String safe(EditText et) { return et.getText() == null ? "" : et.getText().toString().trim(); }
+    private static String safeAct(AutoCompleteTextView et) { return et.getText() == null ? "" : et.getText().toString().trim(); }
+    private static double parseD(String s)  { try { return Double.parseDouble(s.replace(",", ".")); } catch (Exception e) { return 0; } }
+    private static int    parseI(String s)  { try { return Integer.parseInt(s);   } catch (Exception e) { return 0; } }
+
+    private String zoneNameById(String zoneId) {
+        for (ZoneOption zo : zoneOptions) {
+            if (zo.id.equals(zoneId)) return zo.name;
+        }
+        return TextUtils.isEmpty(zoneId) ? "—" : zoneId;
+    }
+
+    private String zoneDisplayById(String zoneId) {
+        for (ZoneOption zo : zoneOptions) {
+            if (zo.id.equals(zoneId)) return zo.name + " (" + zo.id + ")";
+        }
+        return TextUtils.isEmpty(zoneId) ? "(bez zone)" : zoneId;
+    }
+
+    private ZoneOption zoneByDisplay(String display) {
+        for (ZoneOption zo : zoneOptions) {
+            if ((zo.name + " (" + zo.id + ")").equals(display)) return zo;
+            if (zo.id.equals(display)) return zo;
+        }
+        return null;
+    }
+
+    // ── Modeli ────────────────────────────────────────────
+
     static class LotItem {
-        String id, name, address;
-        double perHour, perDay;
+        String id, name, address, zoneId;
         int totalSpaces;
     }
 
-    // ===== Adapter =====
+    static class ZoneOption {
+        String id, name;
+        double perHour, perDay;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // ADAPTER
+    // ═══════════════════════════════════════════════════════
+
     class LotsAdapter extends RecyclerView.Adapter<LotsAdapter.VH> {
         List<LotItem> data = new ArrayList<>();
-        void submit(List<LotItem> d){ data = d; notifyDataSetChanged(); }
+        void submit(List<LotItem> d) { data = d; notifyDataSetChanged(); }
 
         class VH extends RecyclerView.ViewHolder {
-            TextView t1, t2;
-            Button btnEdit, btnDelete;
+            TextView rowTitle, rowSubtitle, tvZonePill, tvSpacesPill, tvFraction;
+            View progressFill, progressTrack;
+
             VH(@NonNull View v) {
                 super(v);
-                t1 = v.findViewById(R.id.rowTitle);
-                t2 = v.findViewById(R.id.rowSubtitle);
-                btnEdit = v.findViewById(R.id.btnEdit);
-                btnDelete = v.findViewById(R.id.btnDelete);
-                View extra = v.findViewById(R.id.btnRole);
-                if (extra != null) extra.setVisibility(View.GONE);
+                rowTitle      = v.findViewById(R.id.rowTitle);
+                rowSubtitle   = v.findViewById(R.id.rowSubtitle);
+                tvZonePill    = v.findViewById(R.id.tvZonePill);
+                tvSpacesPill  = v.findViewById(R.id.tvSpacesPill);
+                progressFill  = v.findViewById(R.id.progressFill);
+                progressTrack = v.findViewById(R.id.progressTrack);
+                tvFraction    = v.findViewById(R.id.tvFraction);
             }
         }
 
-        @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.row_three_actions, parent, false);
+        @NonNull @Override
+        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.row_parking_admin, parent, false);
             return new VH(v);
         }
 
@@ -117,48 +233,169 @@ public class ManageParkingActivity extends AppCompatActivity {
         public void onBindViewHolder(@NonNull VH h, int pos) {
             LotItem it = data.get(pos);
 
-            // Naziv parkinga
-            h.t1.setText(nvl(it.name));
+            h.rowTitle.setText(TextUtils.isEmpty(it.name) ? "(bez naziva)" : it.name);
+            h.rowSubtitle.setText(TextUtils.isEmpty(it.address) ? "—" : it.address);
 
-            // Sve informacije — svaka u svom redu
-            StringBuilder info = new StringBuilder();
-            info.append(TextUtils.isEmpty(it.address) ? "(bez adrese)" : it.address).append("\n");
-            info.append("Cijena 1h - ").append(it.perHour).append(" KM").append("\n");
-            info.append("Cijena 24h - ").append(it.perDay).append(" KM").append("\n");
-            info.append("Mjesta: ").append(it.totalSpaces);
+            h.tvZonePill.setText(zoneNameById(it.zoneId));
+            h.tvSpacesPill.setText(it.totalSpaces + " mj.");
 
-            // Postavi višeredni tekst
-            h.t2.setText(info.toString());
+            Integer freeObj = freeSpacesByLot.get(it.id);
+            int free       = (freeObj == null) ? it.totalSpaces : freeObj;
+            int occupied   = it.totalSpaces - free;
+            if (occupied < 0) occupied = 0;
 
-            // Akcije
-            h.btnEdit.setOnClickListener(v -> showAddEditDialog(it.id, it));
-            h.btnDelete.setOnClickListener(v -> confirmDelete(it.id, it.name));
+            h.tvFraction.setText(occupied + "/" + it.totalSpaces);
+
+            final float ratio;
+            if (it.totalSpaces > 0) {
+                ratio = (float) occupied / (float) it.totalSpaces;
+            } else {
+                ratio = 0f;
+            }
+
+            int fillRes;
+            if (ratio >= 0.9f) {
+                fillRes = R.drawable.bg_progress_fill_red;
+            } else if (ratio >= 0.5f) {
+                fillRes = R.drawable.bg_progress_fill_blue;
+            } else {
+                fillRes = R.drawable.bg_progress_fill_green;
+            }
+            h.progressFill.setBackgroundResource(fillRes);
+
+            setProgressWidth(h.progressTrack, h.progressFill, ratio);
+
+            h.itemView.setOnClickListener(v -> showParkingActionsDialog(it));
         }
 
         @Override public int getItemCount() { return data.size(); }
     }
 
-    /** Dijalog za dodavanje / uređivanje — uključuje LAT/LNG i TOTAL mjesta */
-    private void showAddEditDialog(String id, LotItem current) {
-        View view = LayoutInflater.from(this).inflate(R.layout.dialog_edit_parking_simple, null);
+    private void setProgressWidth(View track, View fill, float ratio) {
+        Runnable apply = () -> {
+            int trackW = track.getWidth();
+            if (trackW <= 0) return;
+            int fillW = (int) (trackW * Math.max(0f, Math.min(1f, ratio)));
+            ViewGroup.LayoutParams lp = fill.getLayoutParams();
+            lp.width = fillW;
+            fill.setLayoutParams(lp);
+        };
+        if (track.getWidth() > 0) {
+            apply.run();
+        } else {
+            track.getViewTreeObserver().addOnGlobalLayoutListener(
+                    new ViewTreeObserver.OnGlobalLayoutListener() {
+                        @Override public void onGlobalLayout() {
+                            track.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                            apply.run();
+                        }
+                    });
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // ACTIONS BOTTOM SHEET
+    // ═══════════════════════════════════════════════════════
+
+    private void showParkingActionsDialog(LotItem it) {
+        BottomSheetDialog dlg = new BottomSheetDialog(this);
+        View v = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_parking_actions, null, false);
+        dlg.setContentView(v);
+
+        TextView tvName    = v.findViewById(R.id.tvParkingActionsName);
+        TextView tvAddress = v.findViewById(R.id.tvParkingActionsAddress);
+        tvName.setText(TextUtils.isEmpty(it.name) ? "(bez naziva)" : it.name);
+        tvAddress.setText(TextUtils.isEmpty(it.address) ? "—" : it.address);
+
+        View rowEdit   = v.findViewById(R.id.rowEditParking);
+        View rowDelete = v.findViewById(R.id.rowDeleteParking);
+        AppCompatButton btnCancel = v.findViewById(R.id.btnParkingActionsCancel);
+
+        rowEdit.setOnClickListener(x -> {
+            dlg.dismiss();
+            showAddEditDialog(it.id, it);
+        });
+        rowDelete.setOnClickListener(x -> {
+            dlg.dismiss();
+            showDeleteConfirmDialog(it);
+        });
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
+    }
+
+    private void showDeleteConfirmDialog(LotItem it) {
+        BottomSheetDialog dlg = new BottomSheetDialog(this);
+        View v = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_confirm_delete_parking, null, false);
+        dlg.setContentView(v);
+
+        TextView tvName    = v.findViewById(R.id.tvDeleteParkingName);
+        TextView tvAddress = v.findViewById(R.id.tvDeleteParkingAddress);
+        tvName.setText(TextUtils.isEmpty(it.name) ? "(bez naziva)" : it.name);
+        tvAddress.setText(TextUtils.isEmpty(it.address) ? "—" : it.address);
+
+        AppCompatButton btnConfirm = v.findViewById(R.id.btnConfirmDeleteParking);
+        AppCompatButton btnCancel  = v.findViewById(R.id.btnCancelDeleteParking);
+
+        btnConfirm.setOnClickListener(x -> {
+            dlg.dismiss();
+            FirebaseUtils.parkingLot(it.id).removeValue()
+                    .addOnSuccessListener(r -> toast("Parking obrisan."))
+                    .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
+        });
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // ADD / EDIT — MODERNI BOTTOM SHEET (bez ručnog ID unosa)
+    // ═══════════════════════════════════════════════════════
+
+    private void showAddEditDialog(String parkingId, LotItem current) {
+        BottomSheetDialog dlg = new BottomSheetDialog(this);
+        View view = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_add_edit_parking, null, false);
+        dlg.setContentView(view);
+
+        TextView tvTitle = view.findViewById(R.id.tvParkingDialogTitle);
+        if (tvTitle != null) tvTitle.setText(parkingId == null ? "Dodaj parking" : "Uredi parking");
+
         EditText etName        = view.findViewById(R.id.etName);
         EditText etAddress     = view.findViewById(R.id.etAddress);
-        EditText etPerHour     = view.findViewById(R.id.etPerHour);
-        EditText etPerDay      = view.findViewById(R.id.etPerDay);
+        EditText etTotalSpaces = view.findViewById(R.id.etTotalSpaces);
         EditText etLat         = view.findViewById(R.id.etLat);
         EditText etLng         = view.findViewById(R.id.etLng);
-        EditText etTotalSpaces = view.findViewById(R.id.etTotalSpaces);
+        AutoCompleteTextView etZone = view.findViewById(R.id.etZoneDropdown);
 
+        AppCompatButton btnSave   = view.findViewById(R.id.btnParkingSave);
+        AppCompatButton btnCancel = view.findViewById(R.id.btnParkingCancel);
+
+        // Zone dropdown adapter
+        List<String> zoneDisplayNames = new ArrayList<>();
+        for (ZoneOption zo : zoneOptions) {
+            zoneDisplayNames.add(zo.name + " (" + zo.id + ")");
+        }
+        ArrayAdapter<String> zoneAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_list_item_1, zoneDisplayNames);
+        etZone.setAdapter(zoneAdapter);
+        etZone.setThreshold(0);
+        etZone.setOnClickListener(v -> etZone.showDropDown());
+        etZone.setOnFocusChangeListener((v, f) -> { if (f) etZone.showDropDown(); });
+
+        // Popuni polja ako je edit
         if (current != null) {
             etName.setText(current.name);
             etAddress.setText(current.address);
-            etPerHour.setText(String.valueOf(current.perHour));
-            etPerDay.setText(String.valueOf(current.perDay));
-            if (current.totalSpaces > 0) etTotalSpaces.setText(String.valueOf(current.totalSpaces));
-        }
+            if (current.totalSpaces > 0)
+                etTotalSpaces.setText(String.valueOf(current.totalSpaces));
 
-        if (id != null) {
-            FirebaseUtils.parkingLot(id).child("geo")
+            String currentZoneDisplay = zoneDisplayById(current.zoneId);
+            etZone.setText(currentZoneDisplay, false);
+
+            FirebaseUtils.parkingLot(parkingId).child("geo")
                     .addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override public void onDataChange(@NonNull DataSnapshot ds) {
                             Double lat = ds.child("lat").getValue(Double.class);
@@ -166,87 +403,94 @@ public class ManageParkingActivity extends AppCompatActivity {
                             if (lat != null) etLat.setText(String.valueOf(lat));
                             if (lng != null) etLng.setText(String.valueOf(lng));
                         }
-                        @Override public void onCancelled(@NonNull DatabaseError error) { /* ignore */ }
+                        @Override public void onCancelled(@NonNull DatabaseError e) {}
                     });
         }
 
-        new AlertDialog.Builder(this)
-                .setTitle(id == null ? "Dodaj parking" : "Uredi parking")
-                .setView(view)
-                .setPositiveButton("Spasi", (d, w) -> {
-                    String name = safe(etName);
-                    if (TextUtils.isEmpty(name)) { toast("Naziv je obavezan"); return; }
+        btnSave.setOnClickListener(x -> {
 
-                    String address = safe(etAddress);
-                    double ph  = parseD(safe(etPerHour));
-                    double pd  = parseD(safe(etPerDay));
-                    double lat = parseD(safe(etLat));
-                    double lng = parseD(safe(etLng));
-                    int total  = parseI(safe(etTotalSpaces));
-                    if (total < 0) total = 0;
+            // ── ID: edit zadrži postojeći, add generiše jedinstven push ID ──
+            final String finalParkingId;
+            if (parkingId != null) {
+                finalParkingId = parkingId;
+            } else {
+                finalParkingId = FirebaseUtils.parkingRef().push().getKey();
+                if (TextUtils.isEmpty(finalParkingId)) {
+                    toast("Greška generisanja ID-a.");
+                    return;
+                }
+            }
 
-                    DatabaseReference ref = (id == null) ? lotsRef.push() : lotsRef.child(id);
-                    String lotId = ref.getKey();
+            String name = safe(etName);
+            if (TextUtils.isEmpty(name)) { toast("Naziv je obavezan"); return; }
 
-                    Map<String, Object> data = new HashMap<>();
-                    data.put("name", name);
-                    data.put("address", address);
+            String zoneDisplay = safeAct(etZone);
+            ZoneOption selectedZone = zoneByDisplay(zoneDisplay);
+            if (selectedZone == null) { toast("Odaberi zonu"); return; }
 
-                    Map<String,Object> pricing = new HashMap<>();
-                    pricing.put("perHour", ph);
-                    pricing.put("perDay", pd);
-                    data.put("pricing", pricing);
+            String address = safe(etAddress);
+            double lat     = parseD(safe(etLat));
+            double lng     = parseD(safe(etLng));
+            int    total   = parseI(safe(etTotalSpaces));
+            if (total < 0) total = 0;
 
-                    Map<String,Object> geo = new HashMap<>();
-                    geo.put("lat", lat);
-                    geo.put("lng", lng);
-                    data.put("geo", geo);
+            DatabaseReference ref = FirebaseUtils.parkingLot(finalParkingId);
 
-                    data.put("totalSpaces", total);
+            Map<String, Object> data = new HashMap<>();
+            data.put("name",        name);
+            data.put("address",     address);
+            data.put("zoneId",      selectedZone.id);
+            data.put("totalSpaces", total);
 
-                    int finalTotal = total;
-                    ref.updateChildren(data).addOnSuccessListener(v1 -> {
-                        generateOrTrimSpaces(lotId, finalTotal);
-                    });
-                })
-                .setNegativeButton("Otkaži", null)
-                .show();
+            Map<String, Object> geo = new HashMap<>();
+            geo.put("lat", lat);
+            geo.put("lng", lng);
+            data.put("geo", geo);
+
+            int finalTotal = total;
+            ref.updateChildren(data).addOnSuccessListener(v1 -> {
+                toast("Parking " + (parkingId == null ? "dodan" : "ažuriran") + " ✓");
+                generateOrTrimSpaces(finalParkingId, finalTotal);
+                dlg.dismiss();
+            }).addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
+        });
+
+        btnCancel.setOnClickListener(x -> dlg.dismiss());
+
+        dlg.show();
     }
 
-    private void confirmDelete(String id, String name) {
-        new AlertDialog.Builder(this)
-                .setTitle("Brisanje")
-                .setMessage("Obrisati parking: " + (name == null ? id : name) + "?")
-                .setPositiveButton("Obriši", (d, w) -> FirebaseUtils.parkingLot(id).removeValue())
-                .setNegativeButton("Otkaži", null)
-                .show();
-    }
+    // ── Sinhronizacija mjesta (netaknuto) ────────────────
 
-    private void generateOrTrimSpaces(@NonNull String lotId, int total) {
-        DatabaseReference spacesRef = FirebaseUtils.parkingLot(lotId).child("spaces");
+    private void generateOrTrimSpaces(@NonNull String parkingId, int total) {
+        DatabaseReference spacesRef = FirebaseUtils.parkingZoneSpaces(parkingId);
         spacesRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot ds) {
+                // Read existing space numbers
                 java.util.Set<Integer> existing = new java.util.HashSet<>();
                 for (DataSnapshot s : ds.getChildren()) {
-                    try { existing.add(Integer.parseInt(s.getKey())); } catch (Exception ignored) {}
+                    try { existing.add(Integer.parseInt(s.getKey())); }
+                    catch (Exception ignored) {}
                 }
+
+                // Add missing spaces (1..total)
                 Map<String, Object> adds = new HashMap<>();
                 for (int i = 1; i <= total; i++) {
                     if (!existing.contains(i)) {
-                        Map<String,Object> one = new HashMap<>();
+                        Map<String, Object> one = new HashMap<>();
                         one.put("status", "slobodno");
                         adds.put(String.valueOf(i), one);
                     }
                 }
                 if (!adds.isEmpty()) spacesRef.updateChildren(adds);
+
+                // Remove spaces above new capacity
                 for (Integer exist : existing) {
-                    if (exist > total) { spacesRef.child(String.valueOf(exist)).removeValue(); }
+                    if (exist > total) spacesRef.child(String.valueOf(exist)).removeValue();
                 }
                 toast("Sinhronizovano mjesta: 1.." + total);
             }
-            @Override public void onCancelled(@NonNull DatabaseError e) {
-                toast("Greška pri sinhronizaciji mjesta: " + e.getMessage());
-            }
+            @Override public void onCancelled(@NonNull DatabaseError e) { toast("Greška: " + e.getMessage()); }
         });
     }
 }
