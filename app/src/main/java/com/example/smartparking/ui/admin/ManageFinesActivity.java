@@ -133,7 +133,7 @@ public class ManageFinesActivity extends AppCompatActivity {
         for (int i = 0; i < tabs.length; i++) {
             boolean active = (modes[i] == mode);
             tabs[i].setBackgroundResource(active
-                    ? R.drawable.bg_tab_active
+                    ? R.drawable.bg_btn_active_primary
                     : android.R.color.transparent);
             tabs[i].setTextColor(ContextCompat.getColor(this,
                     active ? R.color.white : R.color.muted_foreground));
@@ -410,7 +410,7 @@ public class ManageFinesActivity extends AppCompatActivity {
                 h.tvFineAvatarIcon.setTextColor(ContextCompat.getColor(
                         ManageFinesActivity.this, R.color.green_700));
 
-                h.tvStatusBadge.setBackgroundResource(R.drawable.bg_status_pill_paid);
+                h.tvStatusBadge.setBackgroundResource(R.drawable.bg_price_pill_day);
                 h.tvStatusBadge.setTextColor(ContextCompat.getColor(
                         ManageFinesActivity.this, R.color.green_700));
                 h.tvStatusBadge.setText("PLAĆENO");

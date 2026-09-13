@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <!-- 18% bijela — kružni kontejner za auto ikonu u stats piluli -->
+    <solid android:color="#2EFFFFFF" />
+
+</shape>

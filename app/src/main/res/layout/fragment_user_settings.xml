@@ -77,7 +77,6 @@
 
                 <!-- USER badge — zamjena za strelicu btnEditProfile -->
                 <TextView
-                    android:id="@+id/tvProfileRoleBadge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="USER"
@@ -443,7 +442,6 @@
                         </LinearLayout>
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switchNotifications"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"
@@ -496,7 +494,6 @@
                         </LinearLayout>
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switchLocation"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"

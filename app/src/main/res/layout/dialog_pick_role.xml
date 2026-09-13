@@ -33,7 +33,7 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_gravity="center"
-            android:src="@android:drawable/ic_menu_myplaces"
+            android:src="@drawable/ic_users"
             app:tint="@color/blue_600"
             android:contentDescription="Uloga" />
     </FrameLayout>
@@ -87,7 +87,7 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:layout_gravity="center"
-                android:src="@android:drawable/ic_menu_myplaces"
+                android:src="@drawable/ic_users"
                 app:tint="@color/blue_600"
                 android:contentDescription="User" />
         </FrameLayout>

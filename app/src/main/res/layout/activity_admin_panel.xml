@@ -281,7 +281,7 @@
                         <ImageView
                             android:layout_width="36dp"
                             android:layout_height="36dp"
-                            android:src="@android:drawable/ic_menu_myplaces"
+                            android:src="@drawable/ic_users"
                             android:tint="@color/blue_600"
                             android:background="@drawable/bg_menu_icon"
                             android:padding="8dp"

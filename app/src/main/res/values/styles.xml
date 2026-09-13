@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="BottomNavIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/blue_100</item>
+        <item name="android:width">54dp</item>
+        <item name="android:height">36dp</item>
+        <item name="marginHorizontal">4dp</item>
+        <item name="shapeAppearance">@style/BottomNavIndicatorShape</item>
+    </style>
+
+    <style name="BottomNavIndicatorShape">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">18dp</item>
+    </style>
+
+</resources>

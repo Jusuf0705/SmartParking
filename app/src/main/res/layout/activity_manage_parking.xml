@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fitsSystemWindows="true">
+
+    <!-- HERO HEADER -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_header_gradient">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text=""
+                android:contentDescription="Nazad"
+                android:background="@drawable/bg_white_18"
+                app:backgroundTint="@null"
+                app:icon="@drawable/ic_chevron_left"
+                app:iconTint="@color/white"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                app:rippleColor="#33FFFFFF"
+                app:elevation="0dp" />
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Upravljanje parkingom"
+                android:textColor="@color/white"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/fabAdd"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text=""
+                android:contentDescription="Dodaj parking"
+                android:background="@drawable/bg_white_18"
+                app:backgroundTint="@null"
+                app:icon="@drawable/ic_plus"
+                app:iconTint="@color/white"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="18dp"
+                app:rippleColor="#33FFFFFF"
+                app:elevation="0dp" />
+        </LinearLayout>
+
+        <!-- 3 statistike -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/bg_white_15_rounded"
+                android:padding="14dp"
+                android:layout_marginEnd="6dp">
+
+                <TextView
+                    android:id="@+id/tvCountParkings"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Parkinga"
+                    android:textColor="@color/blue_200"
+                    android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/bg_white_15_rounded"
+                android:padding="14dp"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp">
+
+                <TextView
+                    android:id="@+id/tvCountTotalSpaces"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ukupno mjesta"
+                    android:textColor="@color/blue_200"
+                    android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/bg_white_15_rounded"
+                android:padding="14dp"
+                android:layout_marginStart="6dp">
+
+                <TextView
+                    android:id="@+id/tvCountFreeSpaces"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Slobodna"
+                    android:textColor="@color/blue_200"
+                    android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Naslov sekcije: X PARKINGA sa plavom crticom (ETALON) -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="14dp"
+            android:background="@drawable/bg_section_bar_blue"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/tvListHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 PARKINGA"
+            android:textColor="@color/foreground"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="16dp"
+        android:scrollbars="none" />
+
+</LinearLayout>

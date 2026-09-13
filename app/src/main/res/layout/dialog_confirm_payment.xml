@@ -192,7 +192,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:background="@drawable/bg_savings_box"
+            android:background="@drawable/bg_confirm_row"
             android:padding="12dp"
             android:layout_marginBottom="12dp"
             android:visibility="gone">
@@ -234,7 +234,6 @@
 
         <!-- KARTICA info red - kartica će biti terećena -->
         <LinearLayout
-            android:id="@+id/cardInfoBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -266,7 +265,6 @@
                     android:textSize="11sp" />
 
                 <TextView
-                    android:id="@+id/tvCardInfo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text=""
@@ -280,7 +278,6 @@
 
         <!-- BALANS info (kad se plaća iz balansa) -->
         <LinearLayout
-            android:id="@+id/balanceInfoBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -365,8 +362,6 @@
             android:background="@drawable/bg_btn_active_primary"
             android:backgroundTint="@null"
             android:stateListAnimator="@null"
-            android:drawableStart="@drawable/ic_zap"
-            android:drawableEnd="@drawable/ic_arrow_right_white"
             android:drawablePadding="10dp"
             android:paddingStart="20dp"
             android:paddingEnd="20dp"

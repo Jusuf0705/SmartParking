@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet_top"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="28dp">
+
+    <!-- Drag handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_drag_handle" />
+
+    <TextView
+        android:id="@+id/tvSheetTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/foreground"
+        android:layout_marginBottom="4dp"
+        tools:text="Parking XY" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Prikaz slobodnih parking mjesta"
+        android:textSize="12sp"
+        android:textColor="@color/muted_foreground"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:id="@+id/tvSheetEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Nema podataka o mjestima."
+        android:textColor="@color/muted_foreground"
+        android:visibility="gone"
+        android:paddingVertical="24dp"
+        android:gravity="center" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSpaces"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:overScrollMode="never"
+        android:clipToPadding="false"
+        tools:listitem="@layout/item_space_status" />
+
+</LinearLayout>

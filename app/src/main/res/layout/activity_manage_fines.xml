@@ -224,7 +224,6 @@
             </LinearLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilQuery"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="14dp"
@@ -276,7 +275,7 @@
                     android:textStyle="bold"
                     android:textColor="@color/white"
                     android:letterSpacing="0.08"
-                    android:background="@drawable/bg_tab_active"
+                    android:background="@drawable/bg_btn_active_primary"
                     android:backgroundTint="@null"
                     android:stateListAnimator="@null"
                     android:paddingStart="0dp"

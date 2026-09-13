@@ -1,6 +1,7 @@
 package com.example.smartparking.ui.user;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
@@ -18,16 +19,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.smartparking.R;
 import com.example.smartparking.data.FirebaseUtils;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
@@ -169,7 +170,7 @@ public class UserParkingFragment extends Fragment {
             if (ActivityCompat.checkSelfPermission(requireContext(),
                     Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
             LocationManager lm = (LocationManager) requireContext()
-                    .getSystemService(android.content.Context.LOCATION_SERVICE);
+                    .getSystemService(Context.LOCATION_SERVICE);
             if (lm == null) return;
             String provider = lm.getBestProvider(new Criteria(), true);
             lastKnown = provider == null ? null : lm.getLastKnownLocation(provider);
@@ -270,7 +271,6 @@ public class UserParkingFragment extends Fragment {
         if (row.id == null) return;
         ValueEventListener listener = new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot ds) {
-                // Count total and free spaces
                 int free = 0, total = 0;
                 for (DataSnapshot s : ds.getChildren()) {
                     String st = s.child("status").getValue(String.class);
@@ -280,7 +280,6 @@ public class UserParkingFragment extends Fragment {
                 row.free = free;
                 if (total > 0) row.total = total;
 
-                // Refresh UI on the main thread
                 if (isAdded())
                     requireActivity().runOnUiThread(() -> {
                         adapter.notifyDataSetChanged();
@@ -307,7 +306,6 @@ public class UserParkingFragment extends Fragment {
 
         switch (currentFilter) {
             case ALL:
-                // Bez filtera — abecedno sortiranje
                 out.sort(Comparator.comparing(a -> a.name.toLowerCase(Locale.ROOT)));
                 break;
 
@@ -391,6 +389,36 @@ public class UserParkingFragment extends Fragment {
         return 0;
     }
 
+    /**
+     * "Prirodno" poređenje stringova (npr. "2" < "10"), umjesto čisto
+     * leksikografskog (gdje bi "10" ispalo prije "2"). Podržava i oznake
+     * mjesta poput "A1", "A2", "A10".
+     */
+    private static int naturalCompare(String a, String b) {
+        int i = 0, j = 0;
+        while (i < a.length() && j < b.length()) {
+            char ca = a.charAt(i), cb = b.charAt(j);
+            if (Character.isDigit(ca) && Character.isDigit(cb)) {
+                int startI = i, startJ = j;
+                while (i < a.length() && Character.isDigit(a.charAt(i))) i++;
+                while (j < b.length() && Character.isDigit(b.charAt(j))) j++;
+                String numA = a.substring(startI, i);
+                String numB = b.substring(startJ, j);
+                long na = Long.parseLong(numA);
+                long nb = Long.parseLong(numB);
+                int cmp = Long.compare(na, nb);
+                if (cmp != 0) return cmp;
+                cmp = Integer.compare(numA.length(), numB.length());
+                if (cmp != 0) return cmp;
+            } else {
+                int cmp = Character.toLowerCase(ca) - Character.toLowerCase(cb);
+                if (cmp != 0) return cmp;
+                i++; j++;
+            }
+        }
+        return (a.length() - i) - (b.length() - j);
+    }
+
     static class LotRow {
         String id, name, address, zoneId, zoneName;
         double perHour, perDay, lat, lng, distanceKm;
@@ -400,6 +428,12 @@ public class UserParkingFragment extends Fragment {
     static class ZoneItem {
         String id, name;
         double perHour, perDay;
+    }
+
+    static class SpaceItem {
+        String id;
+        boolean free;
+        SpaceItem(String id, boolean free) { this.id = id; this.free = free; }
     }
 
     class LotsAdapter extends RecyclerView.Adapter<LotsAdapter.VH> {
@@ -438,7 +472,7 @@ public class UserParkingFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull VH h, int pos) {
             LotRow r = data.get(pos);
-            android.content.Context ctx = h.itemView.getContext();
+            Context ctx = h.itemView.getContext();
 
             h.tvTitle.setText(r.name);
             h.tvSubtitle.setText(TextUtils.isEmpty(r.address) ? "—" : r.address);
@@ -521,41 +555,88 @@ public class UserParkingFragment extends Fragment {
         public int getItemCount() { return data.size(); }
     }
 
+    // ---------------------------------------------------------------
+    // Bottom sheet dijalog sa stanjem mjesta (zamjena za AlertDialog).
+    // Sadržaj dolazi iz res/layout/dialog_free_spaces.xml.
+    // ---------------------------------------------------------------
+
+    class SpaceStatusAdapter extends RecyclerView.Adapter<SpaceStatusAdapter.VH> {
+        private final List<SpaceItem> items;
+        SpaceStatusAdapter(List<SpaceItem> items) { this.items = items; }
+
+        class VH extends RecyclerView.ViewHolder {
+            TextView tvLabel;
+            VH(View v) {
+                super(v);
+                tvLabel = v.findViewById(R.id.tvSpaceLabel);
+            }
+        }
+
+        @NonNull
+        @Override
+        public VH onCreateViewHolder(@NonNull ViewGroup p, int vt) {
+            return new VH(LayoutInflater.from(p.getContext())
+                    .inflate(R.layout.item_space_status, p, false));
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull VH h, int pos) {
+            SpaceItem it = items.get(pos);
+            Context ctx = h.itemView.getContext();
+
+            h.tvLabel.setText(it.id);
+            h.tvLabel.setTextColor(ContextCompat.getColor(ctx,
+                    it.free ? R.color.green_700 : R.color.red_500));
+        }
+
+        @Override
+        public int getItemCount() { return items.size(); }
+    }
+
     private void showFreeSpacesDialog(LotRow lot) {
         if (!isAdded() || getContext() == null) return;
         FirebaseUtils.parkingLot(lot.id).child("spaces")
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override public void onDataChange(@NonNull DataSnapshot ds) {
-                        List<String> freeList  = new ArrayList<>();
-                        List<String> takenList = new ArrayList<>();
+                        List<SpaceItem> items = new ArrayList<>();
                         for (DataSnapshot s : ds.getChildren()) {
                             String spaceId = s.getKey();
                             String st = s.child("status").getValue(String.class);
                             if (spaceId == null) continue;
-                            if ("slobodno".equalsIgnoreCase(st))
-                                freeList.add("✅  Mjesto " + spaceId);
-                            else
-                                takenList.add("🔴  Mjesto " + spaceId);
+                            items.add(new SpaceItem(spaceId, "slobodno".equalsIgnoreCase(st)));
                         }
-                        List<String> all = new ArrayList<>();
-                        all.addAll(freeList);
-                        all.addAll(takenList);
-
-                        String title = lot.name + " — stanje mjesta";
-                        if (all.isEmpty()) {
-                            new AlertDialog.Builder(requireContext()).setTitle(title)
-                                    .setMessage("Nema podataka o mjestima.")
-                                    .setPositiveButton("OK", null).show();
-                            return;
-                        }
-                        new AlertDialog.Builder(requireContext()).setTitle(title)
-                                .setItems(all.toArray(new String[0]), null)
-                                .setPositiveButton("Zatvori", null).show();
+                        items.sort((a, b) -> naturalCompare(a.id, b.id));
+                        if (isAdded()) showSpacesBottomSheet(lot, items);
                     }
                     @Override public void onCancelled(@NonNull DatabaseError e) {
                         if (getContext() != null)
                             Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
+    }
+
+    private void showSpacesBottomSheet(LotRow lot, List<SpaceItem> items) {
+        BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
+        View sheet = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_free_spaces, null);
+        dialog.setContentView(sheet);
+
+        TextView tvTitle = sheet.findViewById(R.id.tvSheetTitle);
+        TextView tvEmpty = sheet.findViewById(R.id.tvSheetEmpty);
+        RecyclerView rvSpaces = sheet.findViewById(R.id.rvSpaces);
+
+        tvTitle.setText(lot.name);
+
+        if (items.isEmpty()) {
+            tvEmpty.setVisibility(View.VISIBLE);
+            rvSpaces.setVisibility(View.GONE);
+        } else {
+            tvEmpty.setVisibility(View.GONE);
+            rvSpaces.setVisibility(View.VISIBLE);
+            rvSpaces.setLayoutManager(new GridLayoutManager(requireContext(), 5));
+            rvSpaces.setAdapter(new SpaceStatusAdapter(items));
+        }
+
+        dialog.show();
     }
 }

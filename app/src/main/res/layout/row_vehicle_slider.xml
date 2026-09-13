@@ -59,7 +59,6 @@
 
     <!-- Zelena "aktivno" tacka (opcioni indikator, sakrivena po defaultu) -->
     <View
-        android:id="@+id/vActiveIndicator"
         android:layout_width="8dp"
         android:layout_height="8dp"
         android:background="@drawable/bg_active_dot"

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/tab_parking"  android:icon="@drawable/ic_map_pin"     android:title="Parking" />
+    <item android:id="@+id/tab_pay"      android:icon="@drawable/ic_credit_card" android:title="Plaćanje" />
+    <item android:id="@+id/tab_history"  android:icon="@drawable/ic_clock"       android:title="Historija" />
+    <item android:id="@+id/tab_settings" android:icon="@drawable/ic_settings"    android:title="Postavke" />
+</menu>

@@ -132,7 +132,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         for (int i = 0; i < tabs.length; i++) {
             boolean active = (modes[i] == mode);
             tabs[i].setBackgroundResource(active
-                    ? R.drawable.bg_tab_active
+                    ? R.drawable.bg_btn_active_primary
                     : android.R.color.transparent);
             tabs[i].setTextColor(ContextCompat.getColor(this,
                     active ? R.color.white : R.color.muted_foreground));
@@ -662,7 +662,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
             } else {
                 avatarBgRes     = R.drawable.bg_avatar_blue;
                 avatarTextColor = ContextCompat.getColor(AdminManageAccountsActivity.this, R.color.blue_600);
-                badgeBgRes      = R.drawable.bg_role_user;
+                badgeBgRes      = R.drawable.bg_price_pill_hour;
                 badgeTextColor  = ContextCompat.getColor(AdminManageAccountsActivity.this, R.color.blue_600);
                 badgeText       = "user";
             }

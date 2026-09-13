@@ -160,7 +160,7 @@
         android:id="@+id/btnConfirmMarkPaid"
         android:layout_width="match_parent"
         android:layout_height="54dp"
-        android:text="✓ Da, označi kao plaćeno"
+        android:text="Da, označi kao plaćeno"
         android:textAllCaps="false"
         android:textColor="@color/white"
         android:textSize="15sp"

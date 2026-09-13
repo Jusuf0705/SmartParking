@@ -48,7 +48,6 @@
                 app:rippleColor="#33FFFFFF" />
 
             <TextView
-                android:id="@+id/tvScreenTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -184,7 +183,7 @@
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:background="@drawable/bg_tab_active"
+                    android:background="@drawable/bg_btn_active_primary"
                     android:backgroundTint="@null"
                     android:letterSpacing="0.08"
                     android:paddingStart="0dp"
