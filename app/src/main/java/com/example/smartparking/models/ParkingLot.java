@@ -8,8 +8,8 @@ public class ParkingLot {
     public double perHour;
     public double perDay;
 
+    /** Required by Firebase for deserialization. */
     public ParkingLot() {
-        // potreban za Firebase
     }
 
     public ParkingLot(String name, String address, double lat, double lng, double perHour, double perDay) {
@@ -19,5 +19,10 @@ public class ParkingLot {
         this.lng = lng;
         this.perHour = perHour;
         this.perDay = perDay;
+    }
+
+    @Override
+    public String toString() {
+        return "ParkingLot{name='" + name + "', address='" + address + "', perHour=" + perHour + ", perDay=" + perDay + "}";
     }
 }

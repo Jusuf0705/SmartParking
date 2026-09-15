@@ -5,11 +5,11 @@ public class UserModel {
     public String email;
     public String firstName;
     public String lastName;
-    public String plate;     // registarska oznaka (opcionalno)
-    public long createdAt;   // vrijeme registracije
+    public String plate;   // optional
+    public long createdAt;
 
+    /** Required by Firebase for deserialization. */
     public UserModel() {
-        // potreban prazan konstruktor za Firebase
     }
 
     public UserModel(String uid, String email, String firstName, String lastName, String plate, long createdAt) {
@@ -19,5 +19,9 @@ public class UserModel {
         this.lastName = lastName;
         this.plate = plate;
         this.createdAt = createdAt;
+    }
+
+    public String getFullName() {
+        return (firstName == null ? "" : firstName) + " " + (lastName == null ? "" : lastName);
     }
 }

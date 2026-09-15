@@ -6,27 +6,27 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
 
+/** Provides a second FirebaseAuth instance so admin actions don't affect the current user's session. */
 public final class SecondaryAuth {
+
+    private static final String APP_NAME = "secondary";
 
     private static FirebaseAuth secondary;
 
     private SecondaryAuth() {}
 
-    /** Inicijalizuj sekundarni FirebaseApp jednom i vrati FirebaseAuth koji NE dira glavnu sesiju. */
     public static synchronized FirebaseAuth get(Context ctx) {
         if (secondary != null) return secondary;
 
-        // Iskoristi iste opcije kao primarni app
-        FirebaseApp primary = FirebaseApp.getInstance();
-        FirebaseOptions opts = primary.getOptions();
+        FirebaseOptions opts = FirebaseApp.getInstance().getOptions();
 
-        // Ako već postoji app s tim imenom, samo ga preuzmi.
         FirebaseApp app;
         try {
-            app = FirebaseApp.getInstance("secondary");
-        } catch (IllegalStateException notFound) {
-            app = FirebaseApp.initializeApp(ctx, opts, "secondary");
+            app = FirebaseApp.getInstance(APP_NAME);
+        } catch (IllegalStateException notInitialized) {
+            app = FirebaseApp.initializeApp(ctx.getApplicationContext(), opts, APP_NAME);
         }
+
         secondary = FirebaseAuth.getInstance(app);
         return secondary;
     }

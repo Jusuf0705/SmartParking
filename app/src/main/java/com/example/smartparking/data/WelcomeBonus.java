@@ -7,22 +7,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
- * Helper za welcome bonus (10 KM za nove korisnike).
- *
- * KORISTI OVO NA 2 MJESTA:
- *
- * 1) NAKON USPJEŠNE REGISTRACIJE (najbolje mjesto):
- *    WelcomeBonus.grantIfNew(context, uid, granted -> {
- *        // granted == true znaci da je 10 KM dodano
- *    });
- *
- * 2) UserPayFragment (fallback, ako korisnik nije dobio bonus pri registraciji):
- *    WelcomeBonus.grantIfNew(context, uid, granted -> {
- *        if (granted) showWelcomeDialog();
- *    });
- *
- * Metoda je idempotentna — provjerava zastavu u SharedPreferences,
- * pa je bezbjedno pozvati je više puta.
+ * Grants the 10 KM welcome bonus to new users. Idempotent — safe to call
+ * repeatedly (e.g. once on registration, once as a fallback in UserPayFragment).
  */
 public final class WelcomeBonus {
 
@@ -30,36 +16,35 @@ public final class WelcomeBonus {
 
     public static final double AMOUNT = 10.00;
 
-    private static final String PREFS_NAME    = "sp_welcome_bonus";
-    private static final String KEY_PREFIX    = "granted_";
-    private static final String KEY_UI_SHOWN  = "ui_shown_"; // Da li je UI vec prikazan korisniku
+    private static final String PREFS_NAME   = "sp_welcome_bonus";
+    private static final String KEY_PREFIX   = "granted_";
+    private static final String KEY_UI_SHOWN = "ui_shown_";
 
     public interface Callback {
-        /** @param granted true ako je bonus upravo dodan, false ako je vec bio dodijeljen ranije */
+        /** @param granted true if the bonus was just added, false if already granted */
         void onResult(boolean granted);
     }
 
-    /**
-     * Dodjeljuje 10 KM ako korisnik jos nije dobio bonus.
-     * Sigurno se moze pozvati vise puta.
-     */
+    private static SharedPreferences prefs(Context ctx) {
+        return ctx.getApplicationContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+    }
+
+    /** Grants the bonus if this user hasn't received it yet. */
     public static void grantIfNew(@NonNull Context ctx,
                                   @Nullable String uid,
                                   @NonNull Callback cb) {
         if (uid == null || uid.isEmpty()) { cb.onResult(false); return; }
 
-        SharedPreferences p = ctx.getApplicationContext()
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences p = prefs(ctx);
 
-        // Ako je vec dodijeljen prema local flagu, ne diramo bazu
+        // Already granted locally — skip the DB round-trip.
         if (p.getBoolean(KEY_PREFIX + uid, false)) { cb.onResult(false); return; }
 
-        // Provjeri postoji li balance u DB-u
         FirebaseUtils.balance(uid).get().addOnSuccessListener(snap -> {
             boolean balanceExists = snap.exists() && snap.getValue(Double.class) != null;
 
             if (balanceExists) {
-                // Vec postoji — nije novi user, samo obiljezi kao granted da ne pokusavamo opet
+                // Not a new user — mark as granted so we stop checking.
                 p.edit()
                         .putBoolean(KEY_PREFIX + uid, true)
                         .putBoolean(KEY_UI_SHOWN + uid, true)
@@ -68,7 +53,6 @@ public final class WelcomeBonus {
                 return;
             }
 
-            // Prvi put — postavi 10 KM
             FirebaseUtils.balance(uid).setValue(AMOUNT)
                     .addOnSuccessListener(r -> {
                         p.edit().putBoolean(KEY_PREFIX + uid, true).apply();
@@ -78,28 +62,16 @@ public final class WelcomeBonus {
         }).addOnFailureListener(e -> cb.onResult(false));
     }
 
-    /**
-     * Provjerava treba li prikazati "Dobrodošli!" panel korisniku.
-     * Vraca true samo jednom nakon što je bonus dodijeljen.
-     */
+    /** True exactly once, right after the bonus was granted, so the welcome panel can be shown. */
     public static boolean shouldShowUi(@NonNull Context ctx, @Nullable String uid) {
         if (uid == null || uid.isEmpty()) return false;
-        SharedPreferences p = ctx.getApplicationContext()
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        boolean granted   = p.getBoolean(KEY_PREFIX + uid, false);
-        boolean uiShown   = p.getBoolean(KEY_UI_SHOWN + uid, false);
-        return granted && !uiShown;
+        SharedPreferences p = prefs(ctx);
+        return p.getBoolean(KEY_PREFIX + uid, false) && !p.getBoolean(KEY_UI_SHOWN + uid, false);
     }
 
-    /**
-     * Oznaci da je UI prikazan — sledeci put se ne prikazuje.
-     */
+    /** Marks the welcome panel as shown so it won't appear again. */
     public static void markUiShown(@NonNull Context ctx, @Nullable String uid) {
         if (uid == null || uid.isEmpty()) return;
-        ctx.getApplicationContext()
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .putBoolean(KEY_UI_SHOWN + uid, true)
-                .apply();
+        prefs(ctx).edit().putBoolean(KEY_UI_SHOWN + uid, true).apply();
     }
 }
