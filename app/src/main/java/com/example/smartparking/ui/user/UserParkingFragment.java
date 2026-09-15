@@ -45,10 +45,10 @@ public class UserParkingFragment extends Fragment {
     private RecyclerView rv;
     private LotsAdapter adapter;
 
-    // Hero kartica
+    // Hero card
     private TextView tvTotalFree, tvTotalSpots;
 
-    // Svi filter chipovi
+    // Filter chips
     private TextView chipAll, chipFree, chipFull;
     private TextView chipZone1, chipZone2, chipZone3;
     private TextView chipDistAsc, chipDistDesc;
@@ -61,7 +61,7 @@ public class UserParkingFragment extends Fragment {
     private Location lastKnown;
     private static final int REQ_LOC = 1010;
 
-    // Objedinjeni filter mode koji obuhvata: sve/status filter + sortiranje + zona filter
+    // Single filter mode covering: status filter + sort + zone filter
     private enum FilterMode {
         ALL,
         FREE_ONLY, FULL_ONLY,
@@ -116,7 +116,7 @@ public class UserParkingFragment extends Fragment {
     }
 
     private void selectFilter(FilterMode mode) {
-        // Distanca chipovi traže lokaciju
+        // Distance chips need a location fix
         if ((mode == FilterMode.DIST_ASC || mode == FilterMode.DIST_DESC) && lastKnown == null) {
             if (isAdded() && ActivityCompat.checkSelfPermission(requireContext(),
                     Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -232,11 +232,7 @@ public class UserParkingFragment extends Fragment {
                     double perDay   = zone != null ? zone.perDay  : 0.0;
                     String zoneName = zone != null ? zone.name    : "—";
 
-                    int free = 0;
-                    for (DataSnapshot s : p.child("spaces").getChildren()) {
-                        String st = s.child("status").getValue(String.class);
-                        if ("slobodno".equalsIgnoreCase(st)) free++;
-                    }
+                    int free = countFree(p.child("spaces"));
 
                     LotRow row     = new LotRow();
                     row.id         = id;
@@ -271,12 +267,8 @@ public class UserParkingFragment extends Fragment {
         if (row.id == null) return;
         ValueEventListener listener = new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot ds) {
-                int free = 0, total = 0;
-                for (DataSnapshot s : ds.getChildren()) {
-                    String st = s.child("status").getValue(String.class);
-                    total++;
-                    if ("slobodno".equalsIgnoreCase(st)) free++;
-                }
+                int free = countFree(ds);
+                int total = (int) ds.getChildrenCount();
                 row.free = free;
                 if (total > 0) row.total = total;
 
@@ -292,6 +284,16 @@ public class UserParkingFragment extends Fragment {
         FirebaseUtils.parkingLot(row.id).child("spaces").addValueEventListener(listener);
     }
 
+    /** Counts children whose status is "slobodno" under a /spaces snapshot. */
+    private static int countFree(DataSnapshot spacesSnapshot) {
+        int free = 0;
+        for (DataSnapshot s : spacesSnapshot.getChildren()) {
+            String st = s.child("status").getValue(String.class);
+            if ("slobodno".equalsIgnoreCase(st)) free++;
+        }
+        return free;
+    }
+
     private void recomputeDistances() {
         if (lastKnown == null) return;
         double uLat = lastKnown.getLatitude(), uLng = lastKnown.getLongitude();
@@ -300,7 +302,7 @@ public class UserParkingFragment extends Fragment {
                     : distKm(uLat, uLng, row.lat, row.lng);
     }
 
-    // Objedinjeni filter po chipu
+    // Apply the currently selected chip's filter and sort
     private void applyFilter() {
         List<LotRow> out = new ArrayList<>(allLots);
 
@@ -390,9 +392,8 @@ public class UserParkingFragment extends Fragment {
     }
 
     /**
-     * "Prirodno" poređenje stringova (npr. "2" < "10"), umjesto čisto
-     * leksikografskog (gdje bi "10" ispalo prije "2"). Podržava i oznake
-     * mjesta poput "A1", "A2", "A10".
+     * Natural string comparison ("2" sorts before "10", unlike plain
+     * lexicographic order). Handles space labels like "A1", "A2", "A10".
      */
     private static int naturalCompare(String a, String b) {
         int i = 0, j = 0;
@@ -555,10 +556,8 @@ public class UserParkingFragment extends Fragment {
         public int getItemCount() { return data.size(); }
     }
 
-    // ---------------------------------------------------------------
-    // Bottom sheet dijalog sa stanjem mjesta (zamjena za AlertDialog).
-    // Sadržaj dolazi iz res/layout/dialog_free_spaces.xml.
-    // ---------------------------------------------------------------
+    // -- Bottom sheet showing per-space status (replaces the old AlertDialog);
+    // content comes from res/layout/dialog_free_spaces.xml --
 
     class SpaceStatusAdapter extends RecyclerView.Adapter<SpaceStatusAdapter.VH> {
         private final List<SpaceItem> items;

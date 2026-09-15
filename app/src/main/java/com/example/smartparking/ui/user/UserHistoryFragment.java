@@ -33,7 +33,7 @@ import java.util.Map;
 
 public class UserHistoryFragment extends Fragment {
 
-    // THIS_MONTH = ovaj mjesec, PREV_MONTH = prethodni mjesec, YEAR = ova godina
+    // THIS_MONTH = this month, PREV_MONTH = last month, YEAR = this year
     private enum Period { THIS_MONTH, PREV_MONTH, YEAR }
 
     private View cardEmpty;
@@ -67,9 +67,9 @@ public class UserHistoryFragment extends Fragment {
         tvStatHours    = v.findViewById(R.id.tvStatHours);
         tvStatAvg      = v.findViewById(R.id.tvStatAvg);
 
-        btnPeriodWeek  = v.findViewById(R.id.btnPeriodWeek);   // sada "Ovaj mjesec"
-        btnPeriodMonth = v.findViewById(R.id.btnPeriodMonth);  // "Preth. mjesec"
-        btnPeriodYear  = v.findViewById(R.id.btnPeriodYear);   // "Ova godina"
+        btnPeriodWeek  = v.findViewById(R.id.btnPeriodWeek);   // label: "Ovaj mjesec"
+        btnPeriodMonth = v.findViewById(R.id.btnPeriodMonth);  // label: "Preth. mjesec"
+        btnPeriodYear  = v.findViewById(R.id.btnPeriodYear);   // label: "Ova godina"
 
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new HistoryAdapter();
@@ -112,20 +112,20 @@ public class UserHistoryFragment extends Fragment {
         }
     }
 
-    // ── Raspon datuma za odabrani period ──────────────────
+    // -- Date range for the selected period --
     private long[] getPeriodRange(Period p) {
         Calendar cal = Calendar.getInstance();
 
         switch (p) {
             case THIS_MONTH: {
-                // Od 1. ovog mjeseca 00:00 do sada
+                // From the 1st of this month 00:00 to now
                 long now = System.currentTimeMillis();
                 cal.set(Calendar.DAY_OF_MONTH, 1);
                 setStartOfDay(cal);
                 return new long[]{cal.getTimeInMillis(), now};
             }
             case PREV_MONTH: {
-                // Cijeli prethodni mjesec: 1. 00:00 → zadnji dan 23:59:59
+                // The full previous month: 1st 00:00 to the last day 23:59:59
                 cal.add(Calendar.MONTH, -1);
                 cal.set(Calendar.DAY_OF_MONTH, 1);
                 setStartOfDay(cal);
@@ -137,7 +137,7 @@ public class UserHistoryFragment extends Fragment {
                 return new long[]{start, end};
             }
             case YEAR: {
-                // Od 1. januara ove godine 00:00 do sada
+                // From Jan 1 this year 00:00 to now
                 long now = System.currentTimeMillis();
                 cal.set(Calendar.MONTH, Calendar.JANUARY);
                 cal.set(Calendar.DAY_OF_MONTH, 1);
@@ -171,9 +171,9 @@ public class UserHistoryFragment extends Fragment {
         return "Potrošeno";
     }
 
-    // ── Učitavanje naziva parkinga ────────────────────────
+    // -- Load parking lot names --
     private void loadParkingNames() {
-        FirebaseUtils.root().child("parkingLots")
+        FirebaseUtils.parkingRef()
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot ds) {
@@ -189,7 +189,7 @@ public class UserHistoryFragment extends Fragment {
                 });
     }
 
-    // ── Učitavanje naziva zona ───────────────────────────
+    // -- Load zone names --
     private void loadZoneNames() {
         FirebaseUtils.zonesRef()
                 .addListenerForSingleValueEvent(new ValueEventListener() {
@@ -240,7 +240,7 @@ public class UserHistoryFragment extends Fragment {
                 });
 
         // Top-ups — shown in the list, but NOT counted as spending
-        FirebaseUtils.root().child("balanceTopups")
+        FirebaseUtils.balanceTopupsRef()
                 .orderByChild("userId")
                 .equalTo(uid)
                 .addValueEventListener(new ValueEventListener() {
@@ -266,26 +266,26 @@ public class UserHistoryFragment extends Fragment {
         long[] range = getPeriodRange(currentPeriod);
         long start = range[0], end = range[1];
 
-        // Parking sesije u periodu
+        // Parking sessions within the period
         List<HistRow> filteredSessions = new ArrayList<>();
         for (HistRow r : sessionsList)
             if (r.time >= start && r.time <= end) filteredSessions.add(r);
 
-        // Uplate u periodu (samo za prikaz u listi)
+        // Top-ups within the period (list display only)
         List<HistRow> filteredTopups = new ArrayList<>();
         for (HistRow r : topupsList)
             if (r.time >= start && r.time <= end) filteredTopups.add(r);
 
-        // ── Statistika: SAMO parking sesije se broje kao "Potrošeno" ──
+        // -- Stats: only parking sessions count as "spent" --
         double totalSpent   = 0;
         double totalHours   = 0;
         int    sessionCount = filteredSessions.size();
 
         for (HistRow r : filteredSessions) {
-            totalSpent += r.amount;   // bez refund-a
+            totalSpent += r.amount; // no refunds
             if (r.start > 0) {
                 long effectiveEnd = r.end;
-                // Za aktivnu sesiju (kraj u budućnosti) broji do sada
+                // For an active session (end time in the future), count up to now
                 long nowMs = System.currentTimeMillis();
                 if (effectiveEnd <= 0 || effectiveEnd > nowMs) effectiveEnd = nowMs;
                 if (effectiveEnd > r.start) {
@@ -302,7 +302,7 @@ public class UserHistoryFragment extends Fragment {
         if (tvStatHours != null)    tvStatHours.setText(String.format(Locale.getDefault(), "%.1f", totalHours));
         if (tvStatAvg != null)      tvStatAvg.setText(String.format(Locale.getDefault(), "%.2f KM", avg));
 
-        // ── Lista: sesije + uplate (uplate se vide, ali ne ulaze u trošak) ──
+        // -- List: sessions + top-ups (top-ups are shown but not counted as spending) --
         List<HistRow> merged = new ArrayList<>();
         merged.addAll(filteredSessions);
         merged.addAll(filteredTopups);
@@ -333,7 +333,6 @@ public class UserHistoryFragment extends Fragment {
         long     start, end;
     }
 
-    // ─────────────────────────────────────────────────────
     class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.VH> {
 
         List<HistRow> data = new ArrayList<>();
@@ -370,7 +369,7 @@ public class UserHistoryFragment extends Fragment {
         public void onBindViewHolder(@NonNull VH h, int pos) {
             HistRow r = data.get(pos);
 
-            // ── TOPUP (uplata kredita) ──────────────────
+            // -- Top-up row --
             if (r.kind == HistKind.TOPUP) {
                 if (h.ivCarIcon != null) h.ivCarIcon.setImageResource(R.drawable.ic_credit_card);
                 h.tvType.setText("Uplata kredita");
@@ -383,7 +382,7 @@ public class UserHistoryFragment extends Fragment {
                 return;
             }
 
-            // ── PARKING SESIJA ───────────────────────────
+            // -- Parking session row --
             if (h.ivCarIcon != null) h.ivCarIcon.setImageResource(R.drawable.ic_car);
 
             long now = System.currentTimeMillis();

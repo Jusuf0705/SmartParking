@@ -168,9 +168,7 @@ public class UserPayFragment extends Fragment {
         return v;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // WELCOME BONUS
-    // ═══════════════════════════════════════════════════════
+    // -- Welcome bonus --
 
     private void loadBalanceAndCheckWelcomeBonus() {
         String uid = FirebaseAuth.getInstance().getUid();
@@ -259,9 +257,7 @@ public class UserPayFragment extends Fragment {
         dlg.show();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // AKTIVNE SESIJE — ViewPager slajder + dots
-    // ═══════════════════════════════════════════════════════
+    // -- Active sessions: ViewPager slider + dots --
 
     private void renderActiveSessions() {
         if (llActiveSessions == null) return;
@@ -292,32 +288,7 @@ public class UserPayFragment extends Fragment {
     }
 
     private void updateSessionDots() {
-        if (llSessionDots == null) return;
-        llSessionDots.removeAllViews();
-        int total = sessionList.size();
-        if (total <= 1) return;
-
-        int activeColor   = 0xFF2563EB;
-        int inactiveColor = 0xFFD0D4E8;
-
-        for (int i = 0; i < total; i++) {
-            View dot = new View(requireContext());
-            boolean isActive = (i == currentSessionIndex);
-            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
-            int dotW = (int) android.util.TypedValue.applyDimension(
-                    android.util.TypedValue.COMPLEX_UNIT_DIP, isActive ? 20 : 8, dm);
-            int dotH = (int) android.util.TypedValue.applyDimension(
-                    android.util.TypedValue.COMPLEX_UNIT_DIP, 8, dm);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dotW, dotH);
-            lp.setMargins(4, 0, 4, 0);
-            dot.setLayoutParams(lp);
-            android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
-            gd.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-            gd.setCornerRadius(20f);
-            gd.setColor(isActive ? activeColor : inactiveColor);
-            dot.setBackground(gd);
-            llSessionDots.addView(dot);
-        }
+        buildDots(llSessionDots, sessionList.size(), currentSessionIndex);
     }
 
     private void updateAllActiveSessionsUI() {
@@ -357,14 +328,16 @@ public class UserPayFragment extends Fragment {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // VEHICLE DOTS
-    // ═══════════════════════════════════════════════════════
+    // -- Vehicle dots --
 
     private void updateVehicleDots() {
-        if (llVehicleDots == null) return;
-        llVehicleDots.removeAllViews();
-        int total = vehicleAdapter.getItemCount();
+        buildDots(llVehicleDots, vehicleAdapter.getItemCount(), currentVehicleIndex);
+    }
+
+    /** Builds the small "N of M" page-indicator dots into a container, sizing the active one larger. */
+    private void buildDots(LinearLayout container, int total, int activeIndex) {
+        if (container == null) return;
+        container.removeAllViews();
         if (total <= 1) return;
 
         int activeColor   = 0xFF2563EB;
@@ -372,7 +345,7 @@ public class UserPayFragment extends Fragment {
 
         for (int i = 0; i < total; i++) {
             View dot = new View(requireContext());
-            boolean isActive = (i == currentVehicleIndex);
+            boolean isActive = (i == activeIndex);
             android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
             int dotW = (int) android.util.TypedValue.applyDimension(
                     android.util.TypedValue.COMPLEX_UNIT_DIP, isActive ? 20 : 8, dm);
@@ -386,13 +359,11 @@ public class UserPayFragment extends Fragment {
             gd.setCornerRadius(20f);
             gd.setColor(isActive ? activeColor : inactiveColor);
             dot.setBackground(gd);
-            llVehicleDots.addView(dot);
+            container.addView(dot);
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ZONE — dinamički dugmad u horizontalnom slajderu
-    // ═══════════════════════════════════════════════════════
+    // -- Zone chips, built dynamically in a horizontal slider --
 
     private void buildZoneButtons() {
         if (llZoneContainer == null) return;
@@ -448,9 +419,7 @@ public class UserPayFragment extends Fragment {
         updateDurationAndPayLabels();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // DURATION
-    // ═══════════════════════════════════════════════════════
+    // -- Duration --
 
     private void selectDuration(String type, int index) {
         selectedDuration = type;
@@ -547,9 +516,7 @@ public class UserPayFragment extends Fragment {
         restoredOnce = true;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // FIREBASE LOAD
-    // ═══════════════════════════════════════════════════════
+    // -- Firebase load --
 
     private void loadZones() {
         FirebaseUtils.zonesRef().addListenerForSingleValueEvent(new ValueEventListener() {
@@ -675,9 +642,7 @@ public class UserPayFragment extends Fragment {
         super.onDestroyView();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // CONFIRM PAY / EXTEND
-    // ═══════════════════════════════════════════════════════
+    // -- Confirm pay / extend --
 
     private void showConfirmDialog(@NonNull String type) {
         if (!isAdded()) return;
@@ -786,9 +751,7 @@ public class UserPayFragment extends Fragment {
         return "sati";
     }
 
-    // ═══════════════════════════════════════════════════════
-    // TOPUP DIALOG
-    // ═══════════════════════════════════════════════════════
+    // -- Top-up dialog --
 
     private void showTopupDialog(double needForAmount) {
         if (!isAdded()) return;
@@ -938,9 +901,7 @@ public class UserPayFragment extends Fragment {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // EXTEND SESSION — vrijeme se DODAJE na postojeći kraj
-    // ═══════════════════════════════════════════════════════
+    // -- Extend session: time is ADDED to the existing end time --
 
     private void showExtendDialog(@NonNull ActiveSession existing, @NonNull ZoneItem zone,
                                   @NonNull String type, double amount) {
@@ -963,7 +924,7 @@ public class UserPayFragment extends Fragment {
         AppCompatButton btnCancel  = v.findViewById(R.id.btnCancelExtend);
 
         long extendMs = durationMs(type);
-        long newEnd   = existing.endTime + extendMs;   // ← DODAJE se na postojeći kraj
+        long newEnd   = existing.endTime + extendMs; // added onto the existing end time
 
         tvSubtitle.setText("Vrijeme će biti dodano postojećoj sesiji");
         tvAmount.setText(String.format(Locale.getDefault(), "%.2f KM", amount));
@@ -1011,7 +972,7 @@ public class UserPayFragment extends Fragment {
         final FirebaseUser fu = FirebaseAuth.getInstance().getCurrentUser();
         if (fu == null) { failUnlock("Niste prijavljeni."); return; }
         final String uid = fu.getUid();
-        final long newEnd = existing.endTime + extendMs;   // ← akumulira preko 24h
+        final long newEnd = existing.endTime + extendMs; // accumulates past 24h if extended repeatedly
 
         FirebaseUtils.balance(uid).runTransaction(new Transaction.Handler() {
             @NonNull @Override
@@ -1049,9 +1010,7 @@ public class UserPayFragment extends Fragment {
         });
     }
 
-    // ═══════════════════════════════════════════════════════
-    // QUICK ADD VEHICLE
-    // ═══════════════════════════════════════════════════════
+    // -- Quick add vehicle --
 
     private void showQuickAddVehicleDialog() {
         if (!isAdded()) return;
@@ -1099,9 +1058,7 @@ public class UserPayFragment extends Fragment {
         dlg.show();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // PAY
-    // ═══════════════════════════════════════════════════════
+    // -- Pay --
 
     private void pay(@NonNull String type) {
         if (isPaying) return;
@@ -1205,9 +1162,7 @@ public class UserPayFragment extends Fragment {
         });
     }
 
-    // ═══════════════════════════════════════════════════════
-    // TICKER
-    // ═══════════════════════════════════════════════════════
+    // -- Ticker --
 
     private void startTicker() {
         if (!isAdded() || vpActiveSessions == null) return;
@@ -1231,9 +1186,7 @@ public class UserPayFragment extends Fragment {
         statusTick = null;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // HELPERS
-    // ═══════════════════════════════════════════════════════
+    // -- Helpers --
 
     String formatRemain(long ms) {
         if (ms <= 0) return "";
@@ -1331,9 +1284,7 @@ public class UserPayFragment extends Fragment {
         VehicleDisplay(String d, String p) { display = d; plate = p; }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ADAPTER: aktivne sesije (ViewPager)
-    // ═══════════════════════════════════════════════════════
+    // -- Adapter: active sessions (ViewPager) --
     class SessionSliderAdapter extends RecyclerView.Adapter<SessionSliderAdapter.VH> {
         @NonNull @Override
         public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -1373,9 +1324,7 @@ public class UserPayFragment extends Fragment {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ADAPTER: vozila
-    // ═══════════════════════════════════════════════════════
+    // -- Adapter: vehicles --
     class VehicleSliderAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         @Override public int getItemViewType(int position) { return getItemViewTypeAt(position); }
 

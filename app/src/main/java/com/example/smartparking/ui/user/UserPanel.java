@@ -1,4 +1,3 @@
-// UserPanel.java
 package com.example.smartparking.ui.user;
 
 import android.content.Intent;
@@ -81,13 +80,7 @@ public class UserPanel extends AppCompatActivity {
 
     private void openRoot(@NonNull Fragment fragment) {
         FragmentManager fm = getSupportFragmentManager();
-
-        try {
-            fm.executePendingTransactions();
-            while (fm.getBackStackEntryCount() > 0) {
-                fm.popBackStackImmediate();
-            }
-        } catch (IllegalStateException ignored) {}
+        clearBackStackImmediate(fm);
 
         fm.beginTransaction()
                 .replace(R.id.fragmentContainer, fragment)
@@ -101,15 +94,19 @@ public class UserPanel extends AppCompatActivity {
         if (nav != null) nav.setEnabled(false);
         FirebaseAuth.getInstance().signOut();
 
+        clearBackStackImmediate(getSupportFragmentManager());
+
+        goToLoginClearingTask();
+    }
+
+    /** Drops any back-stack fragments immediately, ignoring the case where the state is already gone. */
+    private void clearBackStackImmediate(FragmentManager fm) {
         try {
-            FragmentManager fm = getSupportFragmentManager();
             fm.executePendingTransactions();
             while (fm.getBackStackEntryCount() > 0) {
                 fm.popBackStackImmediate();
             }
         } catch (IllegalStateException ignored) {}
-
-        goToLoginClearingTask();
     }
 
     private void goToLoginClearingTask() {

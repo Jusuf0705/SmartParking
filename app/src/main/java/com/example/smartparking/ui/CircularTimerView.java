@@ -10,15 +10,15 @@ import android.view.View;
 import androidx.annotation.Nullable;
 
 /**
- * Kružni progress indikator (prsten) za prikaz preostalog vremena.
- * API oponaša android.widget.ProgressBar: koristi se
- * setProgress(int percent) sa vrijednostima 0-100.
+ * Circular ring progress indicator for showing remaining time.
+ * Mirrors android.widget.ProgressBar's API: use setProgress(int percent)
+ * with values 0-100.
  *
- * Podrazumijevane boje su usklađene sa plavom (blue_600) hero karticom:
- * providan bijeli pozadinski prsten + puni bijeli progres,
- * isto kao stil horizontalne trake (progressTimer) ispod njega u istom dizajnu.
+ * Default colors match the blue_600 hero card: a translucent white
+ * background ring plus a solid white progress arc, same style as the
+ * horizontal progressTimer bar used below it in the same design.
  *
- * Korištenje u layout-u:
+ * Usage in layout:
  *   <com.example.smartparking.ui.CircularTimerView
  *       android:id="@+id/circularTimer"
  *       android:layout_width="64dp"
@@ -27,7 +27,10 @@ import androidx.annotation.Nullable;
 public class CircularTimerView extends View {
 
     private static final float DEFAULT_STROKE_WIDTH_DP = 5f;
-    private static final float START_ANGLE = -90f; // počni od vrha (12h pozicija)
+    private static final float START_ANGLE = -90f; // start at the top (12 o'clock)
+
+    private static final int DEFAULT_TRACK_COLOR    = 0x33FFFFFF; // translucent white, matches the progressTimer bar's track
+    private static final int DEFAULT_PROGRESS_COLOR = 0xFFFFFFFF; // solid white, visible on the blue_600 card
 
     private final RectF arcBounds = new RectF();
     private final Paint trackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -54,18 +57,18 @@ public class CircularTimerView extends View {
 
         trackPaint.setStyle(Paint.Style.STROKE);
         trackPaint.setStrokeWidth(strokeWidthPx);
-        trackPaint.setColor(0x33FFFFFF); // providan bijeli — isti duh kao #1AFFFFFF pozadina progressTimer trake
+        trackPaint.setColor(DEFAULT_TRACK_COLOR);
 
         progressPaint.setStyle(Paint.Style.STROKE);
         progressPaint.setStrokeWidth(strokeWidthPx);
         progressPaint.setStrokeCap(Paint.Cap.ROUND);
-        progressPaint.setColor(0xFFFFFFFF); // puna bijela — vidljivo na blue_600 kartici
+        progressPaint.setColor(DEFAULT_PROGRESS_COLOR);
     }
 
     /**
-     * Postavlja procenat preostalog vremena (0-100).
-     * Analogno ProgressBar.setProgress(int) — poziva se iz UserPayFragment
-     * u updateTimerProgress().
+     * Sets the remaining-time percentage (0-100).
+     * Mirrors ProgressBar.setProgress(int) — called from UserPayFragment's
+     * updateTimerProgress().
      */
     public void setProgress(int percent) {
         progress = Math.max(0, Math.min(100, percent));
@@ -109,10 +112,10 @@ public class CircularTimerView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        // Pozadinski (prazan) prsten — uvijek pun krug
+        // Background ring — always a full circle
         canvas.drawOval(arcBounds, trackPaint);
 
-        // Progress luk — proporcionalan procentu
+        // Progress arc — proportional to the percentage
         float sweepAngle = 360f * progress / 100f;
         if (sweepAngle > 0f) {
             canvas.drawArc(arcBounds, START_ANGLE, sweepAngle, false, progressPaint);
