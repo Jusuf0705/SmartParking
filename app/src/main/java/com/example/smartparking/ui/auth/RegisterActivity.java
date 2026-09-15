@@ -54,11 +54,11 @@ public class RegisterActivity extends AppCompatActivity {
 
         binding.btnRegister.setOnClickListener(v -> attemptRegister());
 
-        // "Već imate nalog? Prijavi se" — vraća na LoginActivity (isto kao btnBack)
+        // "Already have an account?" — just closes back to LoginActivity
         binding.btnGoToLogin.setOnClickListener(v -> finish());
     }
 
-    // ── Capitalize prvo slovo svake riječi ────────────────
+    // -- Capitalize the first letter of each word --
 
     private void addCapitalizeWatcher(android.widget.EditText et) {
         et.addTextChangedListener(new TextWatcher() {
@@ -87,7 +87,7 @@ public class RegisterActivity extends AppCompatActivity {
         });
     }
 
-    // ── Registracija ──────────────────────────────────────
+    // -- Register --
 
     private void attemptRegister() {
         final String first   = safeText(binding.etFirstName);
@@ -123,7 +123,6 @@ public class RegisterActivity extends AppCompatActivity {
                     final String uid = user.getUid();
                     final long   now = System.currentTimeMillis();
 
-                    // User data
                     Map<String, Object> userData = new HashMap<>();
                     userData.put("firstName", first);
                     userData.put("lastName",  last);
@@ -134,7 +133,6 @@ public class RegisterActivity extends AppCompatActivity {
                     FirebaseUtils.user(uid).updateChildren(userData)
                             .addOnSuccessListener(x1 -> {
 
-                                // Role
                                 FirebaseUtils.role(uid).setValue("user")
                                         .addOnSuccessListener(x2 -> {
 
@@ -142,18 +140,12 @@ public class RegisterActivity extends AppCompatActivity {
                                             FirebaseUtils.balance(uid).setValue(WelcomeBonus.AMOUNT)
                                                     .addOnSuccessListener(x3 -> {
                                                         markBonusGranted(uid);
-
-                                                        setLoading(false);
-                                                        toast("Registracija uspješna! Prijavite se.");
-                                                        finish();
+                                                        finishRegistration();
                                                     })
-
                                                     .addOnFailureListener(e -> {
-                                                        // Balans nije uspio — ipak markiraj kao granted
-                                                        // da fallback u UserPayFragment moze pokusati opet
-                                                        setLoading(false);
-                                                        toast("Registracija uspješna! Prijavite se.");
-                                                        finish();
+                                                        // Balance write failed, but the account exists —
+                                                        // UserPayFragment's fallback will retry the bonus
+                                                        finishRegistration();
                                                     });
                                         })
                                         .addOnFailureListener(e -> {
@@ -181,21 +173,26 @@ public class RegisterActivity extends AppCompatActivity {
                 });
     }
 
+    private void finishRegistration() {
+        setLoading(false);
+        toast("Registracija uspješna! Prijavite se.");
+        finish();
+    }
+
     /**
-     * Oznaci u SharedPreferences da je welcome bonus dodijeljen — ali UI jos NIJE prikazan.
-     * Kad korisnik prvi put otvori UserPayFragment, prikazat ce mu se "Dobrodošli!" panel.
-     *
-     * Napomena: koristimo iste kljuceve kao WelcomeBonus helper klasa.
+     * Marks the welcome bonus as granted locally, but not yet shown to the
+     * user — the "Welcome!" panel appears the first time UserPayFragment
+     * opens. Must use the same SharedPreferences keys as {@link WelcomeBonus}.
      */
     private void markBonusGranted(String uid) {
         SharedPreferences p = getSharedPreferences("sp_welcome_bonus", MODE_PRIVATE);
         p.edit()
-                .putBoolean("granted_"  + uid, true)  // Bonus je dodijeljen
-                .putBoolean("ui_shown_" + uid, false) // Ali UI jos nije prikazan
+                .putBoolean("granted_"  + uid, true)
+                .putBoolean("ui_shown_" + uid, false)
                 .apply();
     }
 
-    // ── Helpers ───────────────────────────────────────────
+    // -- Helpers --
 
     private String safeText(android.widget.EditText et) {
         return (et == null || et.getText() == null) ? "" : et.getText().toString().trim();

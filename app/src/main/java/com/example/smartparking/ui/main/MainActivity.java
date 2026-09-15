@@ -2,32 +2,35 @@ package com.example.smartparking.ui.main;
 
 import android.os.Bundle;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.smartparking.data.FirebaseUtils;
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.database.*;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.ValueEventListener;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "FIREBASE_TEST";
-    private static final String DB_URL = "https://smartparking-744d8-default-rtdb.europe-west1.firebasedatabase.app";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         try {
-            // Eksplicitna inicijalizacija (nije uvijek potrebna, ali pomaže u dijagnostici)
+            // Explicit init — not strictly required, but helps when diagnosing connection issues
             FirebaseApp.initializeApp(this);
         } catch (Exception ignore) {}
 
-        FirebaseDatabase db = FirebaseDatabase.getInstance(DB_URL);
+        // (optional) To enable local disk cache, call
+        // FirebaseDatabase.getInstance(...).setPersistenceEnabled(true) exactly
+        // once, before any getReference() call.
 
-        // (opciono) Uključi lokalni disk cache – ne smetа testu:
-        // db.setPersistenceEnabled(true); // POZOR: poziva se SAMO jednom u app-u prije prvog getReference()
-
-        DatabaseReference ref = db.getReference("_test/hello");
+        DatabaseReference ref = FirebaseUtils.root().child("_test/hello");
 
         // WRITE
         ref.setValue("Pozdrav iz Android aplikacije 👋")
@@ -40,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-        // READ (jednokratni)
+        // READ (one-time)
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot snap) {
                 String val = snap.getValue(String.class);

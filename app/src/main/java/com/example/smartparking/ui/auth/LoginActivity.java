@@ -24,6 +24,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 
+import java.util.Locale;
+
 public class LoginActivity extends AppCompatActivity {
 
     private static final boolean AUTO_REDIRECT_AFTER_COLD_START = false;
@@ -35,15 +37,14 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Omogući edge-to-edge prikaz — sadržaj ide ispod status i navigation bara
-        // ali ScrollView sa fitsSystemWindows=true automatski dodaje padding
+        // Edge-to-edge: content draws behind the status/nav bars, so we add
+        // matching padding to the root view below
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Primijeni WindowInsets na ScrollView — ostavlja prostor za
-        // status bar (sat/signal/baterija gore) i navigation bar (dole)
+        // Pad the root view so content clears the status bar (top) and nav bar (bottom)
         ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, windowInsets) -> {
             Insets insets = windowInsets.getInsets(
                     WindowInsetsCompat.Type.systemBars() |
@@ -51,9 +52,9 @@ public class LoginActivity extends AppCompatActivity {
             );
             v.setPadding(
                     v.getPaddingLeft(),
-                    insets.top,      // gore: status bar visina
+                    insets.top,
                     v.getPaddingRight(),
-                    insets.bottom    // dole: navigation bar visina
+                    insets.bottom
             );
             return WindowInsetsCompat.CONSUMED;
         });
@@ -65,11 +66,10 @@ public class LoginActivity extends AppCompatActivity {
 
     private void setupClickListeners() {
 
-        // Prijava
         binding.btnLogin.setOnClickListener(v -> {
             hideKeyboard(v);
 
-            String email = safeText(binding.etEmail).toLowerCase().trim();
+            String email = safeText(binding.etEmail).toLowerCase(Locale.ROOT).trim();
             String pass  = safeText(binding.etPassword);
 
             if (!isValidEmail(email)) {
@@ -101,7 +101,6 @@ public class LoginActivity extends AppCompatActivity {
                     });
         });
 
-        // Registracija
         binding.btnGoRegister.setOnClickListener(v ->
                 startActivity(new Intent(this, RegisterActivity.class))
         );
@@ -120,8 +119,8 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     /**
-     * Ako /roles/{uid} ne postoji -> upiši "user".
-     * Zatim pročitaj i rutiraj po ulozi.
+     * Writes "user" to /roles/{uid} if it doesn't exist yet,
+     * then reads the role and routes to the matching screen.
      */
     private void ensureUserRoleAndRoute(@NonNull String uid) {
         FirebaseUtils.role(uid).get()
@@ -136,7 +135,7 @@ public class LoginActivity extends AppCompatActivity {
                     } else {
                         String role = snap.getValue(String.class);
                         if (role == null) role = "user";
-                        routeByRoleString(role.trim().toLowerCase());
+                        routeByRoleString(role.trim().toLowerCase(Locale.ROOT));
                     }
                 })
                 .addOnFailureListener(err -> {
@@ -145,7 +144,7 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
-    /** Rutiranje po string ulozi. */
+    /** Routes to the right screen based on the role string. */
     private void routeByRoleString(@NonNull String role) {
         setLoading(false);
 
@@ -173,7 +172,7 @@ public class LoginActivity extends AppCompatActivity {
         finish();
     }
 
-    // ─── Helpers ──────────────────────────────────────────────
+    // -- Helpers --
 
     private static boolean isValidEmail(String email) {
         return !TextUtils.isEmpty(email) && Patterns.EMAIL_ADDRESS.matcher(email).matches();
