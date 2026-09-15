@@ -598,7 +598,9 @@ public class UserPayFragment extends Fragment {
                         long end = endL;
                         if (end <= serverNow + DRIFT_MS) continue;
 
-                        String plateKey = pl.toUpperCase(Locale.ROOT).trim();
+                        // Use the same normalization as when the session was written,
+                        // so this key matches the one used to look up an active session.
+                        String plateKey = normalizePlateStd(pl);
                         ActiveSession existing = activeSessionsMap.get(plateKey);
                         if (existing != null && existing.endTime >= end) continue;
 
@@ -653,7 +655,9 @@ public class UserPayFragment extends Fragment {
         double amount = zone != null ? calcAmount(type, zone) : 0.0;
 
         if (zone != null) {
-            String plateKey = plate.toUpperCase(Locale.ROOT).trim();
+            // Must match the normalization used when a session is stored (normalizePlateStd),
+            // otherwise an active session is never found and a duplicate one gets created.
+            String plateKey = normalizePlateStd(plate);
             ActiveSession existing = activeSessionsMap.get(plateKey);
             if (existing != null) {
                 showExtendDialog(existing, zone, type, amount);
@@ -1082,7 +1086,9 @@ public class UserPayFragment extends Fragment {
         final String sessionId = FirebaseUtils.sessionsRef().push().getKey();
         if (sessionId == null) { failUnlock("Greška generisanja sesije."); return; }
 
-        String plateKey = plate.toUpperCase(Locale.ROOT).trim();
+        // Must match the normalization used when a session is stored (normalizePlateStd),
+        // otherwise an active session is never found and a duplicate one gets created.
+        String plateKey = normalizePlateStd(plate);
         ActiveSession existing = activeSessionsMap.get(plateKey);
         if (existing != null) {
             isPaying = false;
