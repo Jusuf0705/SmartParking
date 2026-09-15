@@ -77,9 +77,7 @@ public class ManageZonesActivity extends AppCompatActivity {
         });
     }
 
-    // ═══════════════════════════════════════════════════════
-    // HERO STATS
-    // ═══════════════════════════════════════════════════════
+    // -- Header stats --
 
     private void updateHeroStats(List<ZoneItem> list) {
         int count = list.size();
@@ -88,30 +86,29 @@ public class ManageZonesActivity extends AppCompatActivity {
         double avg = count > 0 ? sum / count : 0.0;
 
         if (tvCountZones != null) tvCountZones.setText(String.valueOf(count));
-        if (tvAvgPrice   != null) tvAvgPrice.setText(String.format(Locale.getDefault(), "%.2f", avg));
+        if (tvAvgPrice   != null) tvAvgPrice.setText(fmt2(avg));
 
         if (tvListHeader != null) {
             tvListHeader.setText(count + " ZONA");
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────
+    // -- Helpers --
 
     private static String nvl(String s)     { return s == null ? "" : s; }
     private void toast(String s)            { Toast.makeText(this, s, Toast.LENGTH_LONG).show(); }
     private static String safe(EditText et) { return et.getText() == null ? "" : et.getText().toString().trim(); }
     private static double parseD(String s)  { try { return Double.parseDouble(s.replace(",", ".")); } catch (Exception e) { return 0; } }
+    private static String fmt2(double v)    { return String.format(Locale.getDefault(), "%.2f", v); }
 
-    // ── Model ─────────────────────────────────────────────
+    // -- Model --
 
     static class ZoneItem {
         String id, name;
         double perHour, perDay;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ADAPTER
-    // ═══════════════════════════════════════════════════════
+    // -- Adapter --
 
     class ZonesAdapter extends RecyclerView.Adapter<ZonesAdapter.VH> {
         List<ZoneItem> data = new ArrayList<>();
@@ -157,9 +154,7 @@ public class ManageZonesActivity extends AppCompatActivity {
         @Override public int getItemCount() { return data.size(); }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ACTIONS BOTTOM SHEET
-    // ═══════════════════════════════════════════════════════
+    // -- Actions bottom sheet --
 
     private void showZoneActionsDialog(ZoneItem it) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -189,9 +184,7 @@ public class ManageZonesActivity extends AppCompatActivity {
         dlg.show();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // DELETE CONFIRM BOTTOM SHEET
-    // ═══════════════════════════════════════════════════════
+    // -- Delete confirm bottom sheet --
 
     private void showDeleteConfirmDialog(ZoneItem it) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -219,9 +212,7 @@ public class ManageZonesActivity extends AppCompatActivity {
         dlg.show();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ADD / EDIT BOTTOM SHEET
-    // ═══════════════════════════════════════════════════════
+    // -- Add / edit bottom sheet --
 
     private void showAddEditDialog(String zoneId, ZoneItem current) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -239,12 +230,12 @@ public class ManageZonesActivity extends AppCompatActivity {
         AppCompatButton btnSave   = view.findViewById(R.id.btnZoneSave);
         AppCompatButton btnCancel = view.findViewById(R.id.btnZoneCancel);
 
-        // ── POPUNI POLJA PRI UREĐIVANJU ──
-        // Prvo iz proslijeđenog objekta (odmah), pa osvježi iz baze (sigurno tačno)
+        // Prefill from the object we already have, then refresh from the DB
+        // once it responds (covers the case where it's since changed)
         if (current != null) {
             etName.setText(current.name);
-            etPerHour.setText(String.format(Locale.getDefault(), "%.2f", current.perHour));
-            etPerDay.setText(String.format(Locale.getDefault(), "%.2f", current.perDay));
+            etPerHour.setText(fmt2(current.perHour));
+            etPerDay.setText(fmt2(current.perDay));
         }
         if (zoneId != null) {
             FirebaseUtils.zone(zoneId).get().addOnSuccessListener(snap -> {
@@ -253,8 +244,8 @@ public class ManageZonesActivity extends AppCompatActivity {
                 Double ph  = snap.child("perHour").getValue(Double.class);
                 Double pd  = snap.child("perDay").getValue(Double.class);
                 etName.setText(nm == null ? "" : nm);
-                etPerHour.setText(String.format(Locale.getDefault(), "%.2f", ph == null ? 0.0 : ph));
-                etPerDay.setText(String.format(Locale.getDefault(), "%.2f", pd == null ? 0.0 : pd));
+                etPerHour.setText(fmt2(ph == null ? 0.0 : ph));
+                etPerDay.setText(fmt2(pd == null ? 0.0 : pd));
             });
         }
 
@@ -262,7 +253,7 @@ public class ManageZonesActivity extends AppCompatActivity {
             String name = safe(etName);
             if (TextUtils.isEmpty(name)) { toast("Naziv je obavezan"); return; }
 
-            // Keep existing ID for edit, generate a new push ID for add
+            // Keep the existing id when editing, generate a new push id when adding
             final String finalId;
             if (zoneId != null) {
                 finalId = zoneId;
@@ -289,7 +280,6 @@ public class ManageZonesActivity extends AppCompatActivity {
                     })
                     .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
         });
-
 
         btnCancel.setOnClickListener(x -> dlg.dismiss());
 

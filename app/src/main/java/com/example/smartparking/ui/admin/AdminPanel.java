@@ -23,10 +23,9 @@ import java.util.Locale;
 
 public class AdminPanel extends AppCompatActivity {
 
-    // Stats
     private TextView tvActiveSessions, tvRevenueToday;
 
-    // Firebase listener references (za cleanup u onDestroy)
+    // Kept for listener cleanup in onDestroy
     private DatabaseReference sessionsRef;
     private ValueEventListener sessionsListener;
 
@@ -35,16 +34,14 @@ public class AdminPanel extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin_panel);
 
-        // ── LinearLayout redovi u XML-u → View, ne Button ──
+        // These rows are plain LinearLayouts in the XML, not Buttons
         View btnUsers   = findViewById(R.id.btnUsers);
         View btnParking = findViewById(R.id.btnParking);
         View btnZones   = findViewById(R.id.btnZones);
         View btnFines   = findViewById(R.id.btnFines);
 
-        // ── btnSignOut je MaterialButton ──
         MaterialButton btnSignOut = findViewById(R.id.btnSignOut);
 
-        // ── Stats TextViews ──
         tvActiveSessions = findViewById(R.id.tvActiveSessions);
         tvRevenueToday   = findViewById(R.id.tvRevenueToday);
 
@@ -68,15 +65,13 @@ public class AdminPanel extends AppCompatActivity {
             finish();
         });
 
-        // Pokreni realtime statistike
         loadStats();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // STATISTIKE — Aktivne sesije + Prihod danas
-    // ═══════════════════════════════════════════════════════
+    // -- Stats: active sessions + today's revenue --
+
     private void loadStats() {
-        sessionsRef = FirebaseUtils.root().child("parkingSessions");
+        sessionsRef = FirebaseUtils.sessionsRef();
 
         sessionsListener = new ValueEventListener() {
             @Override
@@ -88,7 +83,7 @@ public class AdminPanel extends AppCompatActivity {
                 double revenueToday = 0.0;
 
                 for (DataSnapshot s : ds.getChildren()) {
-                    // Aktivne sesije: status == ACTIVE + endTime > now
+                    // Active session: status ACTIVE and not yet ended
                     String status = s.child("status").getValue(String.class);
                     Long endTime = s.child("endTime").getValue(Long.class);
 
@@ -97,7 +92,7 @@ public class AdminPanel extends AppCompatActivity {
                         activeCount++;
                     }
 
-                    // Prihod danas: startTime >= početak današnjeg dana
+                    // Counts toward today's revenue if it started today
                     Long startTime = s.child("startTime").getValue(Long.class);
                     Double amount = s.child("amount").getValue(Double.class);
 
@@ -106,12 +101,11 @@ public class AdminPanel extends AppCompatActivity {
                     }
                 }
 
-                // Update UI
                 if (tvActiveSessions != null) {
                     tvActiveSessions.setText(String.valueOf(activeCount));
                 }
                 if (tvRevenueToday != null) {
-                    // Prikaz bez decimala ako je cijela vrijednost, inače 2 decimale
+                    // Whole numbers shown without decimals, otherwise 2 decimal places
                     if (revenueToday == Math.floor(revenueToday)) {
                         tvRevenueToday.setText(String.valueOf((long) revenueToday));
                     } else {
@@ -123,17 +117,14 @@ public class AdminPanel extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                // Greška u čitanju — ostavi prikaz kao je (0)
+                // Read failed — leave the current display as is
             }
         };
 
         sessionsRef.addValueEventListener(sessionsListener);
     }
 
-    /**
-     * Vraća millisekunde početka današnjeg dana (00:00:00.000 lokalno vrijeme).
-     * Koristi se za filter "prihod danas".
-     */
+    /** Start of today (00:00:00.000, local time), used to filter "today's revenue". */
     private long startOfDayMs() {
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.HOUR_OF_DAY, 0);
@@ -146,7 +137,6 @@ public class AdminPanel extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Cleanup listener-a
         if (sessionsRef != null && sessionsListener != null) {
             sessionsRef.removeEventListener(sessionsListener);
         }

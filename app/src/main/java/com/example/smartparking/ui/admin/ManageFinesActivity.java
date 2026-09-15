@@ -35,26 +35,22 @@ import java.util.Locale;
 
 public class ManageFinesActivity extends AppCompatActivity {
 
-    // Filter mode
     private enum FilterMode { ALL, UNPAID, PAID }
     private FilterMode currentFilter = FilterMode.ALL;
 
-    // Header
     private MaterialButton btnBack;
     private TextView tvCountFines, tvCountUnpaid, tvCollectedAmount, tvListHeader;
 
-    // Filter
     private TextInputEditText etQuery;
     private AppCompatButton tabAll, tabUnpaid, tabPaid;
 
-    // Lista
     private RecyclerView rv;
     private FinesAdapter adapter;
     private DatabaseReference finesRef;
 
     private static final String STATUS_PAID = "paid";
 
-    // Master lista svih kazni (filter u memoriji)
+    // All fines from the DB; filtering/search happens in memory over this list
     private final List<FineItem> master = new ArrayList<>();
 
     private final ValueEventListener finesListener = new ValueEventListener() {
@@ -72,7 +68,6 @@ public class ManageFinesActivity extends AppCompatActivity {
         super.onCreate(b);
         setContentView(R.layout.activity_manage_fines);
 
-        // Bind
         btnBack           = findViewById(R.id.btnBack);
         tvCountFines      = findViewById(R.id.tvCountFines);
         tvCountUnpaid     = findViewById(R.id.tvCountUnpaid);
@@ -86,19 +81,16 @@ public class ManageFinesActivity extends AppCompatActivity {
 
         if (btnBack != null) btnBack.setOnClickListener(v -> finish());
 
-        // Tabs
         tabAll.setOnClickListener(v    -> selectTab(FilterMode.ALL));
         tabUnpaid.setOnClickListener(v -> selectTab(FilterMode.UNPAID));
         tabPaid.setOnClickListener(v   -> selectTab(FilterMode.PAID));
 
-        // Search
         etQuery.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override public void afterTextChanged(Editable s) { applyFilter(); }
         });
 
-        // RecyclerView
         rv.setLayoutManager(new LinearLayoutManager(this));
         adapter = new FinesAdapter();
         rv.setAdapter(adapter);
@@ -120,9 +112,7 @@ public class ManageFinesActivity extends AppCompatActivity {
         finesRef.removeEventListener(finesListener);
     }
 
-    // ═══════════════════════════════════════════════════════
-    // TABS
-    // ═══════════════════════════════════════════════════════
+    // -- Tabs --
 
     private void selectTab(FilterMode mode) {
         currentFilter = mode;
@@ -142,9 +132,7 @@ public class ManageFinesActivity extends AppCompatActivity {
         applyFilter();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // HERO STATS
-    // ═══════════════════════════════════════════════════════
+    // -- Header stats --
 
     private void updateHeroStats() {
         int total = master.size();
@@ -168,9 +156,7 @@ public class ManageFinesActivity extends AppCompatActivity {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // FILTER
-    // ═══════════════════════════════════════════════════════
+    // -- Filter --
 
     private void applyFilter() {
         String q = "";
@@ -180,7 +166,6 @@ public class ManageFinesActivity extends AppCompatActivity {
 
         List<FineItem> out = new ArrayList<>();
         for (FineItem it : master) {
-            // Status filter
             String st = it.status == null ? "" : it.status.toLowerCase(Locale.ROOT);
             boolean isPaid = STATUS_PAID.equals(st);
 
@@ -192,7 +177,7 @@ public class ManageFinesActivity extends AppCompatActivity {
             }
             if (!statusOk) continue;
 
-            // Query po tablicama
+            // Search matches by plate only
             String plate = it.plate == null ? "" : it.plate.toUpperCase(Locale.ROOT);
             if (!TextUtils.isEmpty(q) && !plate.contains(q)) continue;
 
@@ -229,9 +214,20 @@ public class ManageFinesActivity extends AppCompatActivity {
 
     private void toast(String s) { Toast.makeText(this, s, Toast.LENGTH_LONG).show(); }
 
-    // ═══════════════════════════════════════════════════════
-    // ACTIONS BOTTOM SHEET (klik na row)
-    // ═══════════════════════════════════════════════════════
+    /** Sets the small circular avatar's background, icon and color for paid/unpaid state. */
+    private void styleFineAvatar(View bg, TextView icon, boolean isPaid) {
+        if (isPaid) {
+            bg.setBackgroundResource(R.drawable.bg_fine_avatar_green);
+            icon.setText("✓");
+            icon.setTextColor(ContextCompat.getColor(this, R.color.green_700));
+        } else {
+            bg.setBackgroundResource(R.drawable.bg_fine_avatar_red);
+            icon.setText("⚡");
+            icon.setTextColor(ContextCompat.getColor(this, R.color.destructive));
+        }
+    }
+
+    // -- Actions bottom sheet (tap on a row) --
 
     private void showFineActionsDialog(FineItem it) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -254,16 +250,7 @@ public class ManageFinesActivity extends AppCompatActivity {
         }
         tvInfo.setText(info);
 
-        // Avatar boja prema statusu
-        if (isPaid) {
-            vAvatarBg.setBackgroundResource(R.drawable.bg_fine_avatar_green);
-            tvAvatarIcon.setText("✓");
-            tvAvatarIcon.setTextColor(ContextCompat.getColor(this, R.color.green_700));
-        } else {
-            vAvatarBg.setBackgroundResource(R.drawable.bg_fine_avatar_red);
-            tvAvatarIcon.setText("⚡");
-            tvAvatarIcon.setTextColor(ContextCompat.getColor(this, R.color.destructive));
-        }
+        styleFineAvatar(vAvatarBg, tvAvatarIcon, isPaid);
 
         View rowMarkPaid = v.findViewById(R.id.rowMarkPaid);
         TextView tvMarkPaidTitle    = v.findViewById(R.id.tvMarkPaidTitle);
@@ -271,7 +258,6 @@ public class ManageFinesActivity extends AppCompatActivity {
         AppCompatButton btnCancel   = v.findViewById(R.id.btnFineActionsCancel);
 
         if (isPaid) {
-            // Već plaćena — disable akcija
             tvMarkPaidTitle.setText("Već je plaćena");
             tvMarkPaidSubtitle.setText("Kazna je prethodno naplaćena");
             rowMarkPaid.setAlpha(0.5f);
@@ -288,9 +274,7 @@ public class ManageFinesActivity extends AppCompatActivity {
         dlg.show();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // CONFIRM MARK PAID BOTTOM SHEET
-    // ═══════════════════════════════════════════════════════
+    // -- Confirm "mark as paid" bottom sheet --
 
     private void showConfirmMarkPaidDialog(FineItem it) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -323,7 +307,7 @@ public class ManageFinesActivity extends AppCompatActivity {
         statusRef.runTransaction(new Transaction.Handler() {
             @NonNull @Override
             public Transaction.Result doTransaction(@NonNull MutableData currentData) {
-                // Abort if already paid — prevents double marking
+                // Abort if already paid — prevents double marking on a race
                 Object cur = currentData.getValue();
                 String curStr = cur == null ? "" : String.valueOf(cur);
                 if (STATUS_PAID.equalsIgnoreCase(curStr)) {
@@ -339,7 +323,6 @@ public class ManageFinesActivity extends AppCompatActivity {
                     toast("Greška: " + error.getMessage());
                     return;
                 }
-                // !committed means the transaction was aborted (already paid)
                 if (!committed) {
                     toast("Već je označeno kao plaćeno.");
                 } else {
@@ -349,9 +332,7 @@ public class ManageFinesActivity extends AppCompatActivity {
         });
     }
 
-    // ═══════════════════════════════════════════════════════
-    // MODEL + ADAPTER
-    // ═══════════════════════════════════════════════════════
+    // -- Model + adapter --
 
     static class FineItem {
         String id, plate, status, reason, parkingLotId;
@@ -386,10 +367,8 @@ public class ManageFinesActivity extends AppCompatActivity {
         @Override public void onBindViewHolder(@NonNull VH h, int pos) {
             FineItem it = data.get(pos);
 
-            // Plate
             h.rowTitle.setText(TextUtils.isEmpty(it.plate) ? "—" : it.plate);
 
-            // Subtitle: parking + reason
             StringBuilder sub = new StringBuilder();
             if (!TextUtils.isEmpty(it.parkingLotId)) sub.append(it.parkingLotId);
             if (!TextUtils.isEmpty(it.reason)) {
@@ -399,34 +378,23 @@ public class ManageFinesActivity extends AppCompatActivity {
             if (sub.length() == 0) sub.append("Kazna");
             h.rowSubtitle.setText(sub.toString());
 
-            // Iznos
             h.tvFineAmount.setText(String.format(Locale.getDefault(), "%.2f KM", it.amount));
 
-            // Boja avatara + status badge prema statusu
             boolean isPaid = STATUS_PAID.equalsIgnoreCase(it.status);
-            if (isPaid) {
-                h.vFineAvatarBg.setBackgroundResource(R.drawable.bg_fine_avatar_green);
-                h.tvFineAvatarIcon.setText("✓");
-                h.tvFineAvatarIcon.setTextColor(ContextCompat.getColor(
-                        ManageFinesActivity.this, R.color.green_700));
+            styleFineAvatar(h.vFineAvatarBg, h.tvFineAvatarIcon, isPaid);
 
+            if (isPaid) {
                 h.tvStatusBadge.setBackgroundResource(R.drawable.bg_price_pill_day);
                 h.tvStatusBadge.setTextColor(ContextCompat.getColor(
                         ManageFinesActivity.this, R.color.green_700));
                 h.tvStatusBadge.setText("PLAĆENO");
             } else {
-                h.vFineAvatarBg.setBackgroundResource(R.drawable.bg_fine_avatar_red);
-                h.tvFineAvatarIcon.setText("⚡");
-                h.tvFineAvatarIcon.setTextColor(ContextCompat.getColor(
-                        ManageFinesActivity.this, R.color.destructive));
-
                 h.tvStatusBadge.setBackgroundResource(R.drawable.bg_status_pill_unpaid);
                 h.tvStatusBadge.setTextColor(ContextCompat.getColor(
                         ManageFinesActivity.this, R.color.destructive));
                 h.tvStatusBadge.setText("NEPLAĆENO");
             }
 
-            // Klik na cijeli row → actions sheet
             h.itemView.setOnClickListener(v -> showFineActionsDialog(it));
         }
 

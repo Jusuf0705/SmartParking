@@ -72,7 +72,7 @@ public class ControlPanelActivity extends AppCompatActivity {
             return;
         }
 
-        zonesRef = FirebaseUtils.root().child("zones");
+        zonesRef = FirebaseUtils.zonesRef();
         finesRef = FirebaseUtils.finesRef();
 
         etPlate        = findViewById(R.id.etPlate);
@@ -176,7 +176,8 @@ public class ControlPanelActivity extends AppCompatActivity {
         return c.getTimeInMillis();
     }
 
-    // Search: fetch all sessions, normalize and compare manually
+    // Fetch all sessions and match the plate manually (also covers older
+    // records that predate the plateNormalized field)
     private void search() {
         final String plateNorm = normalizePlateStd(etPlate.getText() != null
                 ? etPlate.getText().toString() : "");
@@ -196,14 +197,13 @@ public class ControlPanelActivity extends AppCompatActivity {
         notFoundInSpaces = false;
         lastHadActivePayment = false;
 
-        // Fetch all sessions (also handles older records without plateNormalized field)
         FirebaseUtils.sessionsRef().addListenerForSingleValueEvent(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot all) {
                 btnSearch.setText("Traži");
                 btnSearch.setEnabled(true);
                 checkedToday++; updateCheckedCount();
 
-                // Find the most recent session for this plate
+                // Pick the most recent session matching this plate
                 DataSnapshot bestSnap = null;
                 long bestEnd = 0;
 
@@ -240,7 +240,7 @@ public class ControlPanelActivity extends AppCompatActivity {
         final long finalEndTime = endL == null ? 0 : endL;
         String status = bestSnap.child("status").getValue(String.class);
 
-        // Aktivno = kraj u budućnosti I status ACTIVE
+        // Active = end time is in the future and status is ACTIVE
         final boolean active = (finalEndTime > now && "ACTIVE".equalsIgnoreCase(status));
         final String finalZoneId = bestSnap.child("zoneId").getValue(String.class);
 
@@ -351,7 +351,7 @@ public class ControlPanelActivity extends AppCompatActivity {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) { Toast.makeText(this, "Niste prijavljeni.", Toast.LENGTH_SHORT).show(); return; }
 
-        // Build fine record — server timestamp ensures accurate issue time
+        // Server timestamp keeps the issue time accurate regardless of device clock
         Map<String, Object> fine = new HashMap<>();
         fine.put("issuedBy",     uid);
         fine.put("plate",        foundPlate);
@@ -362,7 +362,6 @@ public class ControlPanelActivity extends AppCompatActivity {
         fine.put("space",        !TextUtils.isEmpty(foundSpaceId) ? foundSpaceId : "unknown");
         fine.put("match",        notFoundInSpaces ? "not_found" : "found");
 
-        // Push generates a unique fine ID
         finesRef.push().setValue(fine)
                 .addOnSuccessListener(v -> {
                     Toast.makeText(this, "Kazna uspješno izdata.", Toast.LENGTH_LONG).show();

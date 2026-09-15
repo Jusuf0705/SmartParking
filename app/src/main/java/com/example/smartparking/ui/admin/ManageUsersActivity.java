@@ -5,17 +5,27 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.*;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.*;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.smartparking.R;
 import com.example.smartparking.data.FirebaseUtils;
-import com.google.firebase.database.*;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.ValueEventListener;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ManageUsersActivity extends AppCompatActivity {
 
@@ -26,9 +36,9 @@ public class ManageUsersActivity extends AppCompatActivity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_manage_list);
-        ((TextView)findViewById(R.id.tvTitle)).setText("Korisnici i uloge");
+        ((TextView) findViewById(R.id.tvTitle)).setText("Korisnici i uloge");
 
-        // sakrij "Dodaj" jer korisnike kreira registracija
+        // Hide "Add" — accounts are created through registration, not here
         Button fab = findViewById(R.id.fabAdd);
         fab.setVisibility(View.GONE);
 
@@ -38,7 +48,7 @@ public class ManageUsersActivity extends AppCompatActivity {
         rv.setAdapter(adapter);
 
         FirebaseUtils.usersRef().addValueEventListener(new ValueEventListener() {
-            public void onDataChange(@NonNull DataSnapshot ds) {
+            @Override public void onDataChange(@NonNull DataSnapshot ds) {
                 List<UserItem> list = new ArrayList<>();
                 for (DataSnapshot u : ds.getChildren()) {
                     UserItem it = new UserItem();
@@ -51,7 +61,7 @@ public class ManageUsersActivity extends AppCompatActivity {
                 }
                 adapter.submit(list);
             }
-            public void onCancelled(@NonNull DatabaseError e) {
+            @Override public void onCancelled(@NonNull DatabaseError e) {
                 Toast.makeText(ManageUsersActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
@@ -61,12 +71,13 @@ public class ManageUsersActivity extends AppCompatActivity {
 
     class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.VH> {
         List<UserItem> data = new ArrayList<>();
-        void submit(List<UserItem> d){ data=d; notifyDataSetChanged(); }
+        void submit(List<UserItem> d) { data = d; notifyDataSetChanged(); }
 
         class VH extends RecyclerView.ViewHolder {
-            TextView t1,t2;
+            TextView t1, t2;
             Button btnEdit, btnDelete, btnRole;
-            VH(View v){ super(v);
+            VH(View v) {
+                super(v);
                 t1 = v.findViewById(R.id.rowTitle);
                 t2 = v.findViewById(R.id.rowSubtitle);
                 btnEdit = v.findViewById(R.id.btnEdit);
@@ -76,20 +87,20 @@ public class ManageUsersActivity extends AppCompatActivity {
             }
         }
         @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup p, int vt) {
-            View v=LayoutInflater.from(p.getContext()).inflate(R.layout.row_three_actions, p, false);
+            View v = LayoutInflater.from(p.getContext()).inflate(R.layout.row_three_actions, p, false);
             return new VH(v);
         }
         @Override public void onBindViewHolder(@NonNull VH h, int pos) {
             UserItem it = data.get(pos);
             h.t1.setText(it.firstName + " " + it.lastName);
-            String sub = (it.email==null?"":it.email) + (TextUtils.isEmpty(it.plate)?"":"  •  "+it.plate);
+            String sub = (it.email == null ? "" : it.email) + (TextUtils.isEmpty(it.plate) ? "" : "  •  " + it.plate);
             h.t2.setText(sub);
 
             h.btnEdit.setOnClickListener(v -> showEditDialog(it));
             h.btnDelete.setOnClickListener(v -> confirmDelete(it));
             h.btnRole.setOnClickListener(v -> showRoleDialog(it));
         }
-        @Override public int getItemCount(){ return data.size(); }
+        @Override public int getItemCount() { return data.size(); }
     }
 
     private void showEditDialog(UserItem it) {
@@ -102,12 +113,12 @@ public class ManageUsersActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Uredi korisnika")
                 .setView(view)
-                .setPositiveButton("Spasi", (d,w)->{
-                    Map<String,Object> upd = new HashMap<>();
+                .setPositiveButton("Spasi", (d, w) -> {
+                    Map<String, Object> upd = new HashMap<>();
                     upd.put("firstName", etFN.getText().toString().trim());
                     upd.put("lastName", etLN.getText().toString().trim());
                     String pl = etPl.getText().toString().trim();
-                    upd.put("plate", pl.isEmpty()? null : pl);
+                    upd.put("plate", pl.isEmpty() ? null : pl);
                     FirebaseUtils.user(it.uid).updateChildren(upd);
                 })
                 .setNegativeButton("Otkaži", null)
@@ -115,7 +126,7 @@ public class ManageUsersActivity extends AppCompatActivity {
     }
 
     private void showRoleDialog(UserItem it) {
-        String[] roles = {"user","kontrola"};
+        String[] roles = {"user", "kontrola"};
         new AlertDialog.Builder(this)
                 .setTitle("Promijeni ulogu")
                 .setItems(roles, (d, idx) -> FirebaseUtils.role(it.uid).setValue(roles[idx]))
@@ -126,11 +137,12 @@ public class ManageUsersActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Brisanje")
                 .setMessage("Obrisati korisnika " + it.email + " iz baze (users/roles/balances)?")
-                .setPositiveButton("Obriši", (d,w)->{
+                .setPositiveButton("Obriši", (d, w) -> {
                     FirebaseUtils.user(it.uid).removeValue();
                     FirebaseUtils.role(it.uid).removeValue();
                     FirebaseUtils.balance(it.uid).removeValue();
-                    // Napomena: AUTH nalog se ne briše ovim putem (Admin SDK/Cloud Function bi trebalo)
+                    // Note: this does not delete the Firebase Auth account itself
+                    // (would need the Admin SDK / a Cloud Function for that)
                 })
                 .setNegativeButton("Otkaži", null)
                 .show();

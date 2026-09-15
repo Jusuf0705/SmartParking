@@ -119,9 +119,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // TABS
-    // ═══════════════════════════════════════════════════════
+    // -- Tabs --
 
     private void selectTab(FilterMode mode) {
         currentFilter = mode;
@@ -171,9 +169,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // LOAD (admini se preskaču)
-    // ═══════════════════════════════════════════════════════
+    // -- Load accounts (admins are excluded from the list) --
 
     private void loadAllAccounts() {
         rolesRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -233,7 +229,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         });
     }
 
-    /** Baza → UI: "kontrola" → "kontrolor" za prikaz. */
+    /** DB -> UI: "kontrola" becomes "kontrolor" for display. */
     private String normalizeRole(String role) {
         if (role == null) return "user";
         String r = role.trim().toLowerCase(Locale.ROOT);
@@ -242,7 +238,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         return r;
     }
 
-    /** UI → Baza: "kontrolor"/"kontrola" → "kontrola" (što pravila zahtijevaju). */
+    /** UI -> DB: "kontrolor" is stored as "kontrola". */
     private String roleForDb(String uiRole) {
         if (uiRole == null) return "user";
         String r = uiRole.trim().toLowerCase(Locale.ROOT);
@@ -251,9 +247,13 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         return "user";
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ACTIONS BOTTOM SHEET
-    // ═══════════════════════════════════════════════════════
+    /** Full name for display, trimmed, falling back to an empty string. */
+    private static String fullName(AccountRow row) {
+        return ((row.firstName == null ? "" : row.firstName) + " "
+                + (row.lastName == null ? "" : row.lastName)).trim();
+    }
+
+    // -- Actions bottom sheet --
 
     private void showUserActionsDialog(AccountRow row) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -267,8 +267,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         TextView tvEmail       = v.findViewById(R.id.tvDialogEmail);
         TextView tvCurrentRole = v.findViewById(R.id.tvCurrentRole);
 
-        String fullName = ((row.firstName == null ? "" : row.firstName) + " "
-                + (row.lastName == null ? "" : row.lastName)).trim();
+        String fullName = fullName(row);
         tvName.setText(TextUtils.isEmpty(fullName) ? "(Bez imena)" : fullName);
         tvEmail.setText(row.email == null ? "" : row.email);
         tvAvatar.setText(initialsFor(row.firstName, row.lastName, row.email));
@@ -308,9 +307,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         dlg.show();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // PROMIJENI ULOGU
-    // ═══════════════════════════════════════════════════════
+    // -- Change role --
 
     private void showToggleRoleDialog(AccountRow row) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -320,9 +317,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
 
         TextView tvSubtitle = v.findViewById(R.id.tvPickRoleSubtitle);
         if (tvSubtitle != null) {
-            String fullName = ((row.firstName == null ? "" : row.firstName) + " "
-                    + (row.lastName == null ? "" : row.lastName)).trim();
-            String display = TextUtils.isEmpty(fullName) ? (row.email == null ? "" : row.email) : fullName;
+            String display = TextUtils.isEmpty(fullName(row)) ? (row.email == null ? "" : row.email) : fullName(row);
             tvSubtitle.setText("Promijeni ulogu za: " + display + "\nTrenutno: " + row.role);
         }
 
@@ -348,7 +343,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
             toast("Uloga nije promijenjena.");
             return;
         }
-        // ✅ U bazu ide "kontrola" (ne "kontrolor") jer pravila to zahtijevaju
+        // Stored as "kontrola" in the DB, shown as "kontrolor" in the UI
         FirebaseUtils.role(row.uid).setValue(roleForDb(newRole))
                 .addOnSuccessListener(x -> {
                     toast("Uloga promijenjena u: " + newRole);
@@ -357,9 +352,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ADD FLOW
-    // ═══════════════════════════════════════════════════════
+    // -- Add flow --
 
     private void showAddDialog(String role) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -405,7 +398,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
             }
 
             dlg.dismiss();
-            addAccount(fn, ln, email, pass, role);   // rola je već izabrana
+            addAccount(fn, ln, email, pass, role); // role already chosen in the previous step
         });
 
         btnCancel.setOnClickListener(x -> dlg.dismiss());
@@ -456,13 +449,12 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
                     user.put("lastName", ln);
 
                     FirebaseUtils.user(uid).setValue(user);
-                    // DB stores "kontrola", UI shows "kontrolor"
                     FirebaseUtils.role(uid).setValue(roleForDb(role));
                     if (role.equals("user")) {
                         FirebaseUtils.balance(uid).setValue(0.0);
                     }
 
-                    // Sign out secondary instance so it doesn't stay logged in as the new user
+                    // Sign out the secondary instance so it doesn't stay logged in as the new user
                     try { sec.signOut(); } catch (Exception ignored) {}
 
                     toast("Kreirano: " + email + " (" + role + ")");
@@ -471,9 +463,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> toast("Greška pri kreiranju naloga: " + e.getMessage()));
     }
 
-    // ═══════════════════════════════════════════════════════
-    // EDIT PROFILE
-    // ═══════════════════════════════════════════════════════
+    // -- Edit profile --
 
     private void showEditDialog(AccountRow row) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -526,6 +516,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
                     return;
                 }
 
+                // No client-side API to set another user's password directly — send a reset email instead
                 FirebaseAuth.getInstance().sendPasswordResetEmail(row.email)
                         .addOnSuccessListener(v2 -> toast("Poslan reset email na: " + row.email))
                         .addOnFailureListener(e -> toast("Ne mogu poslati reset email: " + e.getMessage()));
@@ -539,9 +530,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         dlg.show();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // DELETE
-    // ═══════════════════════════════════════════════════════
+    // -- Delete --
 
     private void showDeleteConfirmDialog(AccountRow row) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -552,8 +541,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         TextView tvName  = v.findViewById(R.id.tvDeleteUserName);
         TextView tvEmail = v.findViewById(R.id.tvDeleteUserEmail);
 
-        String fullName = ((row.firstName == null ? "" : row.firstName) + " "
-                + (row.lastName == null ? "" : row.lastName)).trim();
+        String fullName = fullName(row);
         tvName.setText(TextUtils.isEmpty(fullName) ? "(Bez imena)" : fullName);
         tvEmail.setText(row.email == null ? "" : row.email);
 
@@ -577,9 +565,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         loadAllAccounts();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // HELPERS
-    // ═══════════════════════════════════════════════════════
+    // -- Helpers --
 
     private static String initialsFor(String firstName, String lastName, String email) {
         String fn = firstName == null ? "" : firstName.trim();
@@ -601,9 +587,7 @@ public class AdminManageAccountsActivity extends AppCompatActivity {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // MODEL + ADAPTER
-    // ═══════════════════════════════════════════════════════
+    // -- Model + adapter --
 
     static class AccountRow {
         String uid, email, firstName, lastName, role;

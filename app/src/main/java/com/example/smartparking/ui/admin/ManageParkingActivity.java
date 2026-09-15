@@ -132,9 +132,7 @@ public class ManageParkingActivity extends AppCompatActivity {
         });
     }
 
-    // ═══════════════════════════════════════════════════════
-    // HERO STATS
-    // ═══════════════════════════════════════════════════════
+    // -- Header stats --
 
     private void updateHeroStats() {
         int parkings = adapter.data.size();
@@ -155,7 +153,7 @@ public class ManageParkingActivity extends AppCompatActivity {
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────
+    // -- Helpers --
 
     private static String nvl(String s)     { return s == null ? "" : s; }
     private void toast(String s)            { Toast.makeText(this, s, Toast.LENGTH_LONG).show(); }
@@ -171,22 +169,27 @@ public class ManageParkingActivity extends AppCompatActivity {
         return TextUtils.isEmpty(zoneId) ? "—" : zoneId;
     }
 
+    /** Label shown in the zone dropdown: "Name (id)". */
+    private static String zoneDisplayLabel(ZoneOption zo) {
+        return zo.name + " (" + zo.id + ")";
+    }
+
     private String zoneDisplayById(String zoneId) {
         for (ZoneOption zo : zoneOptions) {
-            if (zo.id.equals(zoneId)) return zo.name + " (" + zo.id + ")";
+            if (zo.id.equals(zoneId)) return zoneDisplayLabel(zo);
         }
         return TextUtils.isEmpty(zoneId) ? "(bez zone)" : zoneId;
     }
 
     private ZoneOption zoneByDisplay(String display) {
         for (ZoneOption zo : zoneOptions) {
-            if ((zo.name + " (" + zo.id + ")").equals(display)) return zo;
+            if (zoneDisplayLabel(zo).equals(display)) return zo;
             if (zo.id.equals(display)) return zo;
         }
         return null;
     }
 
-    // ── Modeli ────────────────────────────────────────────
+    // -- Models --
 
     static class LotItem {
         String id, name, address, zoneId;
@@ -198,9 +201,7 @@ public class ManageParkingActivity extends AppCompatActivity {
         double perHour, perDay;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ADAPTER
-    // ═══════════════════════════════════════════════════════
+    // -- Adapter --
 
     class LotsAdapter extends RecyclerView.Adapter<LotsAdapter.VH> {
         List<LotItem> data = new ArrayList<>();
@@ -293,9 +294,7 @@ public class ManageParkingActivity extends AppCompatActivity {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ACTIONS BOTTOM SHEET
-    // ═══════════════════════════════════════════════════════
+    // -- Actions bottom sheet --
 
     private void showParkingActionsDialog(LotItem it) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -350,9 +349,7 @@ public class ManageParkingActivity extends AppCompatActivity {
         dlg.show();
     }
 
-    // ═══════════════════════════════════════════════════════
-    // ADD / EDIT — MODERNI BOTTOM SHEET (bez ručnog ID unosa)
-    // ═══════════════════════════════════════════════════════
+    // -- Add / edit bottom sheet (no manual id entry) --
 
     private void showAddEditDialog(String parkingId, LotItem current) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
@@ -373,10 +370,9 @@ public class ManageParkingActivity extends AppCompatActivity {
         AppCompatButton btnSave   = view.findViewById(R.id.btnParkingSave);
         AppCompatButton btnCancel = view.findViewById(R.id.btnParkingCancel);
 
-        // Zone dropdown adapter
         List<String> zoneDisplayNames = new ArrayList<>();
         for (ZoneOption zo : zoneOptions) {
-            zoneDisplayNames.add(zo.name + " (" + zo.id + ")");
+            zoneDisplayNames.add(zoneDisplayLabel(zo));
         }
         ArrayAdapter<String> zoneAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, zoneDisplayNames);
@@ -385,7 +381,7 @@ public class ManageParkingActivity extends AppCompatActivity {
         etZone.setOnClickListener(v -> etZone.showDropDown());
         etZone.setOnFocusChangeListener((v, f) -> { if (f) etZone.showDropDown(); });
 
-        // Popuni polja ako je edit
+        // Prefill fields when editing an existing lot
         if (current != null) {
             etName.setText(current.name);
             etAddress.setText(current.address);
@@ -409,7 +405,7 @@ public class ManageParkingActivity extends AppCompatActivity {
 
         btnSave.setOnClickListener(x -> {
 
-            // ── ID: edit zadrži postojeći, add generiše jedinstven push ID ──
+            // Edit keeps the existing id; add generates a new push id
             final String finalParkingId;
             if (parkingId != null) {
                 finalParkingId = parkingId;
@@ -460,7 +456,7 @@ public class ManageParkingActivity extends AppCompatActivity {
         dlg.show();
     }
 
-    // ── Sinhronizacija mjesta (netaknuto) ────────────────
+    // -- Keep the space nodes in sync with totalSpaces --
 
     private void generateOrTrimSpaces(@NonNull String parkingId, int total) {
         DatabaseReference spacesRef = FirebaseUtils.parkingZoneSpaces(parkingId);
@@ -484,7 +480,7 @@ public class ManageParkingActivity extends AppCompatActivity {
                 }
                 if (!adds.isEmpty()) spacesRef.updateChildren(adds);
 
-                // Remove spaces above new capacity
+                // Remove spaces above the new capacity
                 for (Integer exist : existing) {
                     if (exist > total) spacesRef.child(String.valueOf(exist)).removeValue();
                 }
