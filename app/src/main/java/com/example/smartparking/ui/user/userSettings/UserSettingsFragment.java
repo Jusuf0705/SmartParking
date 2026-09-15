@@ -75,7 +75,7 @@ public class UserSettingsFragment extends Fragment {
             startActivity(i);
         });
 
-        // Placeholder — zamijeni sa stvarnim ekranom/URL-om za uslove korištenja kad bude spreman
+        // Placeholder — swap in the real terms-of-service screen/URL once ready
         if (menuTerms != null) menuTerms.setOnClickListener(view -> {
             if (!isAdded()) return;
             new AlertDialog.Builder(requireContext())
@@ -100,13 +100,13 @@ public class UserSettingsFragment extends Fragment {
         FirebaseUser fu = FirebaseAuth.getInstance().getCurrentUser();
         if (fu == null) return;
 
-        // Email odmah
+        // Email is available immediately, no DB round-trip needed
         String email = fu.getEmail();
         if (tvEmail != null && !TextUtils.isEmpty(email))
             tvEmail.setText(email);
 
-        // Ime + prezime iz /users/{uid}
-        FirebaseUtils.root().child("users").child(fu.getUid())
+        // First/last name from /users/{uid}
+        FirebaseUtils.user(fu.getUid())
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot ds) {
@@ -115,7 +115,7 @@ public class UserSettingsFragment extends Fragment {
                         String firstName = ds.child("firstName").getValue(String.class);
                         String lastName  = ds.child("lastName").getValue(String.class);
 
-                        // Fallback na displayName
+                        // Fall back to the Auth displayName if the profile has no name yet
                         if (TextUtils.isEmpty(firstName) && !TextUtils.isEmpty(fu.getDisplayName())) {
                             String[] parts = fu.getDisplayName().trim().split(" ", 2);
                             firstName = parts[0];
@@ -129,12 +129,12 @@ public class UserSettingsFragment extends Fragment {
                         if (tvName != null && !TextUtils.isEmpty(fullName))
                             tvName.setText(fullName);
 
-                        // Inicijali
+                        // Initials
                         String initials = "";
-                        if (!TextUtils.isEmpty(first)) initials += first.substring(0, 1).toUpperCase();
-                        if (!TextUtils.isEmpty(last))  initials += last.substring(0, 1).toUpperCase();
+                        if (!TextUtils.isEmpty(first)) initials += first.substring(0, 1).toUpperCase(Locale.ROOT);
+                        if (!TextUtils.isEmpty(last))  initials += last.substring(0, 1).toUpperCase(Locale.ROOT);
                         if (TextUtils.isEmpty(initials) && !TextUtils.isEmpty(email))
-                            initials = email.substring(0, 1).toUpperCase();
+                            initials = email.substring(0, 1).toUpperCase(Locale.ROOT);
 
                         if (tvInitials != null) tvInitials.setText(initials);
                     }
@@ -144,7 +144,7 @@ public class UserSettingsFragment extends Fragment {
                 });
     }
 
-    // ── Balans — prikazuje se i u hero kartici i kao podnaslov "Dokupi kredit" ──
+    // Balance — shown both in the hero card and as the "Top up" subtitle
     private void loadBalance() {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) return;
@@ -160,7 +160,7 @@ public class UserSettingsFragment extends Fragment {
         });
     }
 
-    // ── Broj registrovanih vozila — podnaslov "Upravljanje vozilima" ──
+    // Vehicle count — shown as the "Manage vehicles" subtitle
     private void loadVehicleCount() {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) return;
@@ -174,7 +174,7 @@ public class UserSettingsFragment extends Fragment {
         });
     }
 
-    // Jednostavna BHS pluralizacija: 1 vozilo, 2-4 vozila, 5+ vozila
+    // Simple BHS pluralization: 1 vozilo, 2-4 vozila, 5+ vozila
     private static String vehicleWord(long count) {
         long mod10 = count % 10;
         long mod100 = count % 100;

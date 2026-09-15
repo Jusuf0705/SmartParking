@@ -36,13 +36,13 @@ public class VehiclesActivity extends AppCompatActivity {
 
     public static final String EXTRA_VEHICLE_ID = "extra_vehicle_id";
 
-    // Deterministička paleta boja — vozilo dobija konzistentnu boju po tablici
+    // Deterministic palette — a vehicle always gets the same color for its plate
     private static final int[] VEHICLE_PALETTE = new int[] {
             0xFF3B82F6, 0xFFE74C3C, 0xFF10B981, 0xFFF59E0B,
             0xFF8B5CF6, 0xFF06B6D4, 0xFFEC4899, 0xFF6366F1
     };
 
-    // Adapter view type-ovi
+    // Adapter view types
     private static final int TYPE_VEHICLE = 0;
     private static final int TYPE_ADD     = 1;
 
@@ -79,7 +79,7 @@ public class VehiclesActivity extends AppCompatActivity {
             return;
         }
 
-        vehiclesRef = FirebaseUtils.user(uid).child("vehicles");
+        vehiclesRef = FirebaseUtils.userVehicles(uid);
         listenVehicles();
     }
 
@@ -103,7 +103,7 @@ public class VehiclesActivity extends AppCompatActivity {
                     list.add(r);
                 }
 
-                // Najstarije vozilo dobija "OSNOVNO"
+                // The oldest vehicle gets the "default" badge
                 defaultVehicleId = null;
                 long oldest = Long.MAX_VALUE;
                 for (VehicleRow r : list) {
@@ -113,7 +113,7 @@ public class VehiclesActivity extends AppCompatActivity {
                     }
                 }
 
-                // Najnovije prvo
+                // Newest first
                 list.sort((a, b) -> Long.compare(b.createdAt, a.createdAt));
                 adapter.submit(list);
 
@@ -130,7 +130,7 @@ public class VehiclesActivity extends AppCompatActivity {
         vehiclesRef.addValueEventListener(vehiclesListener);
     }
 
-    // ── Boja po vozilu ────────────────────────────────────
+    // -- Color per vehicle --
 
     private static int colorForPlate(String plate) {
         if (TextUtils.isEmpty(plate)) return VEHICLE_PALETTE[0];
@@ -144,7 +144,7 @@ public class VehiclesActivity extends AppCompatActivity {
         return (color & 0x00FFFFFF) | 0x1F000000;
     }
 
-    // ── Bottom sheet za brisanje ──────────────────────────
+    // -- Delete bottom sheet --
 
     private void showDeleteDialog(VehicleRow r) {
         if (r == null || TextUtils.isEmpty(r.id)) return;
@@ -214,12 +214,10 @@ public class VehiclesActivity extends AppCompatActivity {
         long createdAt;
     }
 
-    // ═════════════════════════════════════════════════════════════
-    // Adapter — podržava dva view type-a: vozilo + "Dodaj vozilo".
-    // "Dodaj" red je uvijek POSLJEDNJI item u listi:
-    //   - Ako lista vozila je prazna: prikazuje se sam (na vrhu)
-    //   - Ako ima vozila: prikazuje se ispod poslednjeg vozila
-    // ═════════════════════════════════════════════════════════════
+    // Adapter with two view types: vehicle rows + an "Add vehicle" row.
+    // The add row is always LAST in the list:
+    //   - if there are no vehicles, it's the only item
+    //   - otherwise it appears below the last vehicle
     class VehiclesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private List<VehicleRow> data = new ArrayList<>();
@@ -231,13 +229,13 @@ public class VehiclesActivity extends AppCompatActivity {
 
         @Override
         public int getItemViewType(int position) {
-            // Zadnja pozicija = "Dodaj vozilo" kartica
+            // Last position is always the "Add vehicle" card
             return position == data.size() ? TYPE_ADD : TYPE_VEHICLE;
         }
 
         @Override
         public int getItemCount() {
-            // +1 za "Dodaj vozilo" red
+            // +1 for the "Add vehicle" row
             return data.size() + 1;
         }
 
@@ -264,7 +262,7 @@ public class VehiclesActivity extends AppCompatActivity {
             VehicleVH h = (VehicleVH) holder;
             VehicleRow r = data.get(position);
 
-            // Nickname (ili fallback)
+            // Nickname, or a fallback
             String nickname = r.nickname;
             if (TextUtils.isEmpty(nickname)) {
                 if (!TextUtils.isEmpty(r.brand) || !TextUtils.isEmpty(r.type))
@@ -286,14 +284,14 @@ public class VehiclesActivity extends AppCompatActivity {
             h.tvVehicleBrand.setText(brandType);
             h.tvVehicleBrand.setVisibility(brandType.isEmpty() ? View.GONE : View.VISIBLE);
 
-            // Tablica
+            // Plate
             h.tvVehiclePlate.setText(TextUtils.isEmpty(r.plate) ? "—" : r.plate);
 
-            // OSNOVNO bedž
+            // "Default" badge
             boolean isDefault = defaultVehicleId != null && defaultVehicleId.equals(r.id);
             h.tvDefaultBadge.setVisibility(isDefault ? View.VISIBLE : View.GONE);
 
-            // Boja ikonice + pozadina
+            // Icon color + background tint
             int color = colorForPlate(r.plate);
 
             if (h.ivVehicleColor != null) {
@@ -311,7 +309,7 @@ public class VehiclesActivity extends AppCompatActivity {
             h.btnDeleteVehicle.setOnClickListener(v -> showDeleteDialog(r));
         }
 
-        // ── ViewHolder-i ────────────────────────────
+        // -- ViewHolders --
 
         class VehicleVH extends RecyclerView.ViewHolder {
             View vIconBg;

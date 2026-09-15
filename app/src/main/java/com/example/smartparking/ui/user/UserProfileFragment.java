@@ -30,6 +30,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class UserProfileFragment extends Fragment {
@@ -50,7 +51,7 @@ public class UserProfileFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inf, @Nullable ViewGroup parent, @Nullable Bundle b) {
         View v = inf.inflate(R.layout.fragment_user_profile, parent, false);
 
-        // ✅ Back dugme iz headera
+        // Back button in header
         btnBack = v.findViewById(R.id.btnBack);
         if (btnBack != null) {
             btnBack.setOnClickListener(vw -> goBackToSettings());
@@ -73,10 +74,10 @@ public class UserProfileFragment extends Fragment {
 
         userRef = FirebaseUtils.user(uid);
 
-        // Kreiraj profil ako ne postoji
+        // Create profile doc if this is the user's first time here
         ensureUserProfile(uid, me.getEmail());
 
-        // Listener za profil
+        // Keeps name fields and header in sync with DB
         userListener = new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot u) {
                 String first = u.child("firstName").getValue(String.class);
@@ -85,17 +86,17 @@ public class UserProfileFragment extends Fragment {
                 if (etFN != null) etFN.setText(first == null ? "" : first);
                 if (etLN != null) etLN.setText(last == null ? "" : last);
 
-                // ── Header: ime + inicijali ──
+                // Build display name and initials for the header
                 String fullName = ((first == null ? "" : first.trim()) + " "
                         + (last == null ? "" : last.trim())).trim();
                 if (tvHeaderName != null)
                     tvHeaderName.setText(TextUtils.isEmpty(fullName) ? "" : fullName);
 
                 String initials = "";
-                if (!TextUtils.isEmpty(first)) initials += first.trim().substring(0, 1).toUpperCase();
-                if (!TextUtils.isEmpty(last))  initials += last.trim().substring(0, 1).toUpperCase();
+                if (!TextUtils.isEmpty(first)) initials += first.trim().substring(0, 1).toUpperCase(Locale.ROOT);
+                if (!TextUtils.isEmpty(last))  initials += last.trim().substring(0, 1).toUpperCase(Locale.ROOT);
                 if (TextUtils.isEmpty(initials) && me.getEmail() != null && !me.getEmail().isEmpty())
-                    initials = me.getEmail().substring(0, 1).toUpperCase();
+                    initials = me.getEmail().substring(0, 1).toUpperCase(Locale.ROOT);
                 if (tvHeaderInitials != null) tvHeaderInitials.setText(initials);
             }
 
@@ -105,7 +106,7 @@ public class UserProfileFragment extends Fragment {
         };
         userRef.addValueEventListener(userListener);
 
-        // ✅ Otvori panel za promjenu lozinke
+        // Opens the change-password bottom sheet
         View btnChangePassword = v.findViewById(R.id.btnChangePassword);
         if (btnChangePassword != null) {
             btnChangePassword.setOnClickListener(vw -> showChangePasswordSheet());
@@ -116,7 +117,6 @@ public class UserProfileFragment extends Fragment {
         return v;
     }
 
-    // ✅ Vraćanje na UserSettingsActivity
     private void goBackToSettings() {
         requireActivity().getOnBackPressedDispatcher().onBackPressed();
     }
@@ -144,17 +144,17 @@ public class UserProfileFragment extends Fragment {
         if (TextUtils.isEmpty(first)) { if (etFN != null) etFN.requestFocus(); toast("Unesite ime."); return; }
         if (TextUtils.isEmpty(last))  { if (etLN != null) etLN.requestFocus(); toast("Unesite prezime."); return; }
 
-        // Update user profile in a single write
+        // Scoped to this user's node instead of building raw absolute paths off root()
         Map<String, Object> upd = new HashMap<>();
-        upd.put("/users/" + uid + "/firstName", first);
-        upd.put("/users/" + uid + "/lastName", last);
+        upd.put("firstName", first);
+        upd.put("lastName", last);
 
-        FirebaseUtils.root().updateChildren(upd)
+        FirebaseUtils.user(uid).updateChildren(upd)
                 .addOnSuccessListener(x -> showSavedAnimation())
                 .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
     }
 
-    // ── Bottom sheet za promjenu lozinke (bez zasebne klase) ──
+    // Change-password flow, inline as a bottom sheet rather than a separate screen
     private void showChangePasswordSheet() {
         if (getContext() == null) return;
 
@@ -211,7 +211,7 @@ public class UserProfileFragment extends Fragment {
         dialog.show();
     }
 
-    // ── Privremena vizuelna potvrda na Sačuvaj dugmetu ──
+    // Briefly shows a success state on the save button, then reverts it
     private void showSavedAnimation() {
         if (btnSave == null || !isAdded()) return;
 

@@ -37,10 +37,10 @@ public class TopUpActivity extends AppCompatActivity {
     private ActivityTopUpBinding binding;
     private String uid;
 
-    // Trenutno sačuvana kartica (ili null ako je nema)
+    // Currently saved card, or null if none
     private CardData currentCard = null;
 
-    // Cache trenutnog balansa (za confirm dialog)
+    // Cached balance, used in the confirm dialog
     private double cachedBalance = 0.0;
 
     private static final double MIN = 1.0;
@@ -68,13 +68,13 @@ public class TopUpActivity extends AppCompatActivity {
 
         binding.btnTopUp.setOnClickListener(v -> onConfirm());
 
-        // Klik na hero karticu — otvara ili formu (ako nema) ili opcije (ako ima)
+        // Tapping the hero card opens the add form or the options sheet
         binding.heroCardContainer.setOnClickListener(v -> {
             if (currentCard == null) showAddCardSheet();
             else                     showCardOptionsSheet();
         });
 
-        // Balans u realnom vremenu
+        // Live balance
         FirebaseUtils.balance(uid).addValueEventListener(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
                 Double d = snapshot.getValue(Double.class);
@@ -85,7 +85,7 @@ public class TopUpActivity extends AppCompatActivity {
             @Override public void onCancelled(@NonNull DatabaseError error) { }
         });
 
-        // Slušaj promjene na kartici (add/update/delete)
+        // Listen for card changes (add/update/delete)
         FirebaseUtils.user(uid).child("paymentCard").addValueEventListener(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot ds) {
                 if (!ds.exists()) {
@@ -104,7 +104,7 @@ public class TopUpActivity extends AppCompatActivity {
         });
     }
 
-    // ── UI za hero karticu ────────────────────────────────
+    // -- Hero card UI --
 
     private void refreshHeroCard() {
         boolean has = currentCard != null && !TextUtils.isEmpty(currentCard.number);
@@ -122,7 +122,7 @@ public class TopUpActivity extends AppCompatActivity {
         }
     }
 
-    // Prikazuje samo poslednje 4 cifre: •••• •••• •••• 4242
+    // Full masked number: •••• •••• •••• 4242
     private static String maskCardNumber(String number) {
         if (TextUtils.isEmpty(number)) return "••••    ••••    ••••    ••••";
         String digits = number.replaceAll("\\D+", "");
@@ -131,7 +131,14 @@ public class TopUpActivity extends AppCompatActivity {
         return "••••    ••••    ••••    " + last4;
     }
 
-    // ── Bottom sheet: forma za kartu (Add ili Edit) ──
+    // Short form used in dialogs: •••• 4242
+    private static String maskedLast4(@Nullable String number) {
+        String digits = number == null ? "" : number.replaceAll("\\D+", "");
+        String last4  = digits.length() >= 4 ? digits.substring(digits.length() - 4) : digits;
+        return "•••• " + last4;
+    }
+
+    // -- Bottom sheet: card form (add or edit) --
 
     private void showAddCardSheet()  { showCardFormSheet(null); }
 
@@ -150,7 +157,7 @@ public class TopUpActivity extends AppCompatActivity {
         Button btnSave      = v.findViewById(R.id.btnSaveCard);
         Button btnCancel    = v.findViewById(R.id.btnCancelForm);
 
-        // Auto-format: razmaci u broju svake 4 cifre i "/" u datumu isteka
+        // Auto-format: a space every 4 digits in the number, "/" in the expiry date
         etNumber.addTextChangedListener(new SimpleWatcher(etNumber) {
             @Override void onChange(String raw) {
                 String digits = raw.replaceAll("\\D+", "");
@@ -218,7 +225,7 @@ public class TopUpActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
     }
 
-    // ── Bottom sheet: opcije za postojeću karticu ────
+    // -- Bottom sheet: options for the existing card --
 
     private void showCardOptionsSheet() {
         if (currentCard == null) return;
@@ -228,9 +235,7 @@ public class TopUpActivity extends AppCompatActivity {
         dlg.setContentView(v);
 
         TextView tvNumber = v.findViewById(R.id.tvOptionsCardNumber);
-        String digits = currentCard.number == null ? "" : currentCard.number.replaceAll("\\D+", "");
-        String last4  = digits.length() >= 4 ? digits.substring(digits.length() - 4) : digits;
-        tvNumber.setText("•••• " + last4);
+        tvNumber.setText(maskedLast4(currentCard.number));
 
         v.findViewById(R.id.btnEditCard).setOnClickListener(x -> {
             dlg.dismiss();
@@ -245,7 +250,7 @@ public class TopUpActivity extends AppCompatActivity {
         dlg.show();
     }
 
-    // ── Bottom sheet: potvrda brisanja kartice ────
+    // -- Bottom sheet: confirm card deletion --
 
     private void showDeleteCardConfirmDialog() {
         if (currentCard == null) return;
@@ -256,9 +261,7 @@ public class TopUpActivity extends AppCompatActivity {
         dlg.setContentView(v);
 
         TextView tvNumber = v.findViewById(R.id.tvDeleteCardNumber);
-        String digits = currentCard.number == null ? "" : currentCard.number.replaceAll("\\D+", "");
-        String last4  = digits.length() >= 4 ? digits.substring(digits.length() - 4) : digits;
-        tvNumber.setText("•••• " + last4);
+        tvNumber.setText(maskedLast4(currentCard.number));
 
         AppCompatButton btnConfirm = v.findViewById(R.id.btnConfirmDeleteCard);
         AppCompatButton btnCancel  = v.findViewById(R.id.btnCancelDeleteCard);
@@ -278,7 +281,7 @@ public class TopUpActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> toast("Greška: " + e.getMessage()));
     }
 
-    // ── Dopuna balansa ────────────────────────────────
+    // -- Top-up --
 
     private void setAmount(double v) {
         binding.etAmount.setText(String.format(Locale.getDefault(), "%.2f", v));
@@ -302,13 +305,11 @@ public class TopUpActivity extends AppCompatActivity {
         if (amount < MIN) { toast("Minimalni iznos je " + fmt(MIN) + " KM."); return; }
         if (amount > MAX) { toast("Maksimalni iznos je " + fmt(MAX) + " KM."); return; }
 
-        // Prvo otvori confirm dialog umjesto direktnog performTopUp
+        // Show the confirm dialog instead of topping up directly
         showConfirmTopupDialog(amount);
     }
 
-    /**
-     * Bottom sheet potvrde: "Dopuniti račun sa X KM?" Da / Ne
-     */
+    /** Confirm bottom sheet: "Top up by X KM?" Yes / No */
     private void showConfirmTopupDialog(double amount) {
         BottomSheetDialog dlg = new BottomSheetDialog(this);
         View v = LayoutInflater.from(this)
@@ -327,14 +328,9 @@ public class TopUpActivity extends AppCompatActivity {
         tvBalance.setText(String.format(Locale.getDefault(), "%.2f KM", cachedBalance));
         tvNewBalance.setText(String.format(Locale.getDefault(), "%.2f KM", cachedBalance + amount));
 
-        // Prikazi zadnje 4 cifre kartice
-        if (currentCard != null && !TextUtils.isEmpty(currentCard.number)) {
-            String digits = currentCard.number.replaceAll("\\D+", "");
-            String last4  = digits.length() >= 4 ? digits.substring(digits.length() - 4) : digits;
-            tvCard.setText("•••• " + last4);
-        } else {
-            tvCard.setText("•••• ••••");
-        }
+        tvCard.setText(currentCard != null && !TextUtils.isEmpty(currentCard.number)
+                ? maskedLast4(currentCard.number)
+                : "•••• ••••");
 
         btnYes.setOnClickListener(x -> {
             dlg.dismiss();
@@ -350,7 +346,7 @@ public class TopUpActivity extends AppCompatActivity {
         FirebaseUtils.balance(uid).runTransaction(new Transaction.Handler() {
             @NonNull @Override
             public Transaction.Result doTransaction(@NonNull MutableData currentData) {
-                // Atomically increase balance
+                // Atomically increase the balance
                 Double cur = currentData.getValue(Double.class);
                 double newBal = (cur == null ? 0.0 : cur) + amount;
                 currentData.setValue(newBal);
@@ -365,7 +361,7 @@ public class TopUpActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Log top-up in /balanceTopups
+                // Log the top-up in /balanceTopups
                 String key = FirebaseUtils.root().child("balanceTopups").push().getKey();
                 if (key != null) {
                     Map<String, Object> log = new HashMap<>();
@@ -383,7 +379,6 @@ public class TopUpActivity extends AppCompatActivity {
         });
     }
 
-
     private void onTopUpFinished(double amount) {
         if (binding != null) binding.btnTopUp.setEnabled(currentCard != null);
         toast("Uspješno dopunjeno " + fmt(amount) + " KM.");
@@ -398,13 +393,13 @@ public class TopUpActivity extends AppCompatActivity {
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
 
-    // ── Helpers ───────────────────────────────────────
+    // -- Helpers --
 
     static class CardData {
         String number, holder, expiry, cvc;
     }
 
-    // Watcher koji spriječava rekurziju pri auto-formatiranju
+    // Watcher that avoids re-entrant calls while auto-formatting
     private static abstract class SimpleWatcher implements TextWatcher {
         private final EditText target;
         private boolean editing = false;

@@ -19,6 +19,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class AddVehicleActivity extends AppCompatActivity {
@@ -29,7 +30,7 @@ public class AddVehicleActivity extends AppCompatActivity {
     private String uid;
     private DatabaseReference vehiclesRef;
 
-    // ako nije null => edit mode
+    // Non-null means we're editing this vehicle instead of adding a new one
     private String editVehicleId = null;
 
     @Override
@@ -37,11 +38,9 @@ public class AddVehicleActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_vehicle);
 
-        // ── Back dugme ────────────────────────────────────
         MaterialButton btnBack = findViewById(R.id.btnBack);
         if (btnBack != null) btnBack.setOnClickListener(v -> finish());
 
-        // ── Polja ─────────────────────────────────────────
         etBrand    = findViewById(R.id.etBrand);
         etType     = findViewById(R.id.etType);
         etNickname = findViewById(R.id.etNickname);
@@ -55,9 +54,8 @@ public class AddVehicleActivity extends AppCompatActivity {
             return;
         }
 
-        vehiclesRef = FirebaseUtils.user(uid).child("vehicles");
+        vehiclesRef = FirebaseUtils.userVehicles(uid);
 
-        // Edit mode?
         editVehicleId = getIntent().getStringExtra(VehiclesActivity.EXTRA_VEHICLE_ID);
 
         if (!TextUtils.isEmpty(editVehicleId)) {
@@ -88,7 +86,7 @@ public class AddVehicleActivity extends AppCompatActivity {
         String brand    = safe(etBrand);
         String type     = safe(etType);
         String nickname = safe(etNickname);
-        String plate    = safe(etPlate).toUpperCase();
+        String plate    = safe(etPlate).toUpperCase(Locale.ROOT);
 
         if (TextUtils.isEmpty(plate)) {
             if (etPlate != null) {
