@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- LOKACIJA: res/values-night/themes.xml -->
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="Base.Theme.SmartParking" parent="Theme.Material3.DayNight.NoActionBar">

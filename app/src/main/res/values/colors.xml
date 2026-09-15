@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- ── DARK THEME ── -->
+    <!-- Material 3 dark color scheme -->
     <color name="md_theme_dark_onPrimary">#1A1050</color>
     <color name="md_theme_dark_primaryContainer">#18183A</color>
     <color name="md_theme_dark_secondary">#9095A8</color>
@@ -24,36 +24,26 @@
     <color name="md_theme_dark_outline">#2E3350</color>
     <color name="md_theme_dark_outlineVariant">#1E2235</color>
 
-    <!-- Brand plava (glavna boja iz Figma dizajna) -->
+    <!-- Brand colors, from the Figma design -->
     <color name="brand_blue_light">#3B82F6</color>
+    <!-- Brand blue at ~8% opacity -->
+    <color name="brand_blue_border_faint">#142563EB</color>
 
-    <!-- ~12% opacity plave -->
-    <color name="brand_blue_border_faint">#142563EB</color>  <!-- ~8% opacity plave -->
-
-    <!-- Tekst tonovi -->
+    <!-- Text tones -->
     <color name="text_slate_400">#94A3B8</color>
-
-    <!-- Status boje (dostupno / ograničeno / puno) -->
-    <color name="status_available_text">#16A34A</color>
-    <color name="status_full_text">#DC2626</color>
-
-    <!-- Outline dugme (distanca) -->
-    <color name="button_outline_bg">#F8FAFF</color>
-
-    <!-- ── BACKGROUNDS ── -->
-    <color name="background">#F0F6FF</color>
-    <color name="white">#FFFFFF</color>
-
-    <!-- ── LOGIN / DARK ── -->
-    <color name="dark_blue_mid">#1E3A8A</color>
-    <color name="dark_blue_end">#1D4ED8</color>
-
-    <!-- ── FOREGROUND / TEXT ── -->
     <color name="foreground">#0F1C35</color>
     <color name="muted_foreground">#64748B</color>
     <color name="destructive">#EF4444</color>
 
-    <!-- ── BLUE PALETTE ── -->
+    <!-- Backgrounds -->
+    <color name="background">#F0F6FF</color>
+    <color name="white">#FFFFFF</color>
+
+    <!-- Login screen gradient (dark) -->
+    <color name="dark_blue_mid">#1E3A8A</color>
+    <color name="dark_blue_end">#1D4ED8</color>
+
+    <!-- Blue palette -->
     <color name="blue_50">#EFF6FF</color>
     <color name="blue_100">#DBEAFE</color>
     <color name="blue_200">#BFDBFE</color>
@@ -61,27 +51,30 @@
     <color name="blue_600">#2563EB</color>
     <color name="blue_700">#1D4ED8</color>
 
-    <!-- ── STATUS: AVAILABLE ── -->
+    <!-- Status: available (green) -->
+    <color name="status_available_text">#16A34A</color>
     <color name="green_100">#DCFCE7</color>
-    <color name="green_700">#15803D</color>
-    <color name="green_500">#22C55E</color>
     <color name="green_400">#4ADE80</color>
+    <color name="green_500">#22C55E</color>
+    <color name="green_700">#15803D</color>
 
-    <!-- ── STATUS: LIMITED ── -->
+    <!-- Status: limited (amber) -->
     <color name="amber_100">#FEF3C7</color>
     <color name="amber_700">#B45309</color>
 
-    <!-- ── STATUS: FULL ── -->
+    <!-- Status: full (red) -->
+    <color name="status_full_text">#DC2626</color>
     <color name="red_100">#FEE2E2</color>
     <color name="red_200">#FECACA</color>
     <color name="red_500">#EF4444</color>
     <color name="red_bg">#FFF5F5</color>
 
-    <!-- ── BORDERS ── -->
+    <!-- Borders and outlined buttons -->
     <color name="border">#1E2563EB</color>
     <color name="border_light">#0F2563EB</color>
+    <color name="button_outline_bg">#F8FAFF</color>
 
-    <!-- ── CARD CHIP (gold) ── -->
+    <!-- Card chip (gold gradient) -->
     <color name="chip_gold_start">#D4A017</color>
     <color name="chip_gold_end">#F0C040</color>
 
